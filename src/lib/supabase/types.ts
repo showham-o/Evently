@@ -23,7 +23,7 @@ export interface Event {
   status: EventStatus;
   max_capacity: number | null;
   minimum_age: number | null;
-  co_managers: string[] | null;
+  manager_ids: string[];
   created_at?: string;
 }
 
@@ -43,4 +43,15 @@ export interface EventInvitee {
 
 export interface EventInviteeWithProfile extends EventInvitee {
   profile: Profile;
+}
+
+export interface ArchivedProfile {
+  id: string;
+  original_profile_id: string | null;
+  full_name: string | null;
+  email: string;
+  phone: string | null;
+  age: number | null;
+  archived_at: string;
+  expires_at: string;
 }

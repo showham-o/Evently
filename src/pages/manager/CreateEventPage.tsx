@@ -9,7 +9,7 @@ import { EventForm } from '../../components/manager/EventForm';
 import type { EventFormValues } from '../../components/manager/EventForm';
 
 export function CreateEventPage() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
 
@@ -28,17 +28,30 @@ export function CreateEventPage() {
         minimum_age: values.minimum_age ? Number(values.minimum_age) : null,
         status: values.status,
         created_by: profile.id,
+        manager_ids: [profile.id],
       })
       .select()
       .single();
 
-    setSubmitting(false);
-
     if (error || !data) {
+      setSubmitting(false);
       toast.error('יצירת האירוע נכשלה');
       return;
     }
 
+    // Creating an event elevates a registered_user to event_manager (super_admin stays as-is).
+    if (profile.role === 'registered_user') {
+      const { error: roleError } = await supabase
+        .from('profiles')
+        .update({ role: 'event_manager' })
+        .eq('id', profile.id);
+
+      if (!roleError) {
+        await refreshProfile();
+      }
+    }
+
+    setSubmitting(false);
     toast.success('האירוע נוצר בהצלחה');
     navigate('/manager');
   }

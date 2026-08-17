@@ -12,6 +12,7 @@ import { CreateEventPage } from './pages/manager/CreateEventPage';
 import { EditEventPage } from './pages/manager/EditEventPage';
 import { EventInviteesPage } from './pages/manager/EventInviteesPage';
 import { AdminPage } from './pages/admin/AdminPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 function App() {
   return (
@@ -24,9 +25,19 @@ function App() {
         <Route path="/e/:eventId" element={<EventDetailsPage />} />
 
         <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Guests are blocked from event creation/management; every other role may create events. */}
+        <Route
           path="/manager"
           element={
-            <RoleRoute allow={(p) => p.role === 'event_manager' || p.role === 'super_admin'}>
+            <RoleRoute allow={(p) => p.role !== 'guest'}>
               <ManagerDashboardPage />
             </RoleRoute>
           }
@@ -34,7 +45,7 @@ function App() {
         <Route
           path="/manager/events/new"
           element={
-            <RoleRoute allow={(p) => p.role === 'event_manager' || p.role === 'super_admin'}>
+            <RoleRoute allow={(p) => p.role !== 'guest'}>
               <CreateEventPage />
             </RoleRoute>
           }

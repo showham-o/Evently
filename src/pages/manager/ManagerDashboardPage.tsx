@@ -31,11 +31,7 @@ export function ManagerDashboardPage() {
       if (!mounted) return;
       const all = (data ?? []) as Event[];
       const mine =
-        profile!.role === 'super_admin'
-          ? all
-          : all.filter(
-              (event) => event.created_by === profile!.id || (event.co_managers ?? []).includes(profile!.id),
-            );
+        profile!.role === 'super_admin' ? all : all.filter((event) => event.manager_ids.includes(profile!.id));
       setEvents(mine);
       setLoading(false);
     }

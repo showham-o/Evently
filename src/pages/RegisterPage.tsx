@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { useAuth } from '../context/AuthProvider';
+import { deleteArchivedProfile, findActiveArchivedProfile } from '../utils/archive';
 import { Card } from '../components/ui/Card';
 import { Input, PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -22,6 +23,21 @@ export function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [archivedProfileId, setArchivedProfileId] = useState<string | null>(null);
+
+  async function handleEmailBlur() {
+    if (!email) return;
+    const archived = await findActiveArchivedProfile(email);
+    if (archived) {
+      setArchivedProfileId(archived.id);
+      setFullName((current) => current || archived.full_name || '');
+      setPhone((current) => current || archived.phone || '');
+      setAge((current) => current || (archived.age != null ? String(archived.age) : ''));
+      toast.info('מצאנו חשבון קודם עם אימייל זה - שחזרנו את פרטיך');
+    } else {
+      setArchivedProfileId(null);
+    }
+  }
 
   if (!loading && user) {
     return <Navigate to="/" replace />;
@@ -67,6 +83,10 @@ export function RegisterPage() {
       return;
     }
 
+    if (archivedProfileId) {
+      await deleteArchivedProfile(archivedProfileId);
+    }
+
     toast.success('נרשמת בהצלחה!');
     navigate('/');
   }
@@ -96,6 +116,7 @@ export function RegisterPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onBlur={handleEmailBlur}
             placeholder="you@example.com"
           />
           <Input

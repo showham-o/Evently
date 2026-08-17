@@ -23,10 +23,7 @@ export function EventInviteesPage() {
     );
   }
 
-  const canManage =
-    profile?.role === 'super_admin' ||
-    event.created_by === profile?.id ||
-    (event.co_managers ?? []).includes(profile?.id ?? '');
+  const canManage = profile?.role === 'super_admin' || event.manager_ids.includes(profile?.id ?? '');
 
   if (!canManage) {
     return (

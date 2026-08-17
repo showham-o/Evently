@@ -12,7 +12,7 @@ export function Navbar() {
     navigate('/');
   }
 
-  const isManager = profile?.role === 'event_manager' || profile?.role === 'super_admin';
+  const canManageEvents = !!profile && profile.role !== 'guest';
   const isSuperAdmin = profile?.role === 'super_admin';
 
   return (
@@ -35,7 +35,7 @@ export function Navbar() {
             <Skeleton className="h-9 w-24" />
           ) : user ? (
             <>
-              {isManager && (
+              {canManageEvents && (
                 <Link
                   to="/manager"
                   className="hidden items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 sm:flex"
@@ -53,10 +53,13 @@ export function Navbar() {
                   ניהול מערכת
                 </Link>
               )}
-              <div className="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700">
+              <Link
+                to="/profile"
+                className="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+              >
                 <UserIcon className="h-4 w-4" />
-                {profile?.full_name ?? user.email}
-              </div>
+                <span className="hidden sm:inline">הפרופיל שלי</span>
+              </Link>
               <button
                 onClick={handleSignOut}
                 className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
