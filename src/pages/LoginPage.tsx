@@ -69,6 +69,11 @@ export function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
           />
+          <div className="text-end">
+            <Link to="/forgot-password" className="text-sm font-medium text-primary-600 hover:text-primary-700">
+              שכחתי סיסמה
+            </Link>
+          </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" loading={submitting} className="mt-2 w-full">
             {submitting ? 'מתחבר...' : 'התחברות'}
