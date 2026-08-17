@@ -37,12 +37,19 @@ export function EventCard({ event, approvedCount, linkTo }: EventCardProps) {
             {event.location}
           </div>
         )}
-        {!!event.max_capacity && event.max_capacity > 0 && (
-          <div className="flex items-center gap-1.5">
-            <Users className="h-4 w-4 shrink-0" />
-            {approvedCount ?? 0} / {event.max_capacity} נרשמים
-          </div>
-        )}
+        <div className="flex items-center gap-1.5">
+          <Users className="h-4 w-4 shrink-0" />
+          {!!event.max_capacity && event.max_capacity > 0 ? (
+            <span>
+              <span dir="ltr" className="inline-block">
+                {approvedCount ?? 0} / {event.max_capacity}
+              </span>{' '}
+              נרשמים
+            </span>
+          ) : (
+            <span>{approvedCount ?? 0} נרשמים</span>
+          )}
+        </div>
       </div>
     </Link>
   );

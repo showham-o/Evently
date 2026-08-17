@@ -96,12 +96,19 @@ export function EventDetailsPage() {
               {event.location}
             </div>
           )}
-          {!!event.max_capacity && event.max_capacity > 0 && (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 shrink-0" />
-              {approvedCount} / {event.max_capacity} נרשמים מאושרים
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 shrink-0" />
+            {!!event.max_capacity && event.max_capacity > 0 ? (
+              <span>
+                <span dir="ltr" className="inline-block">
+                  {approvedCount} / {event.max_capacity}
+                </span>{' '}
+                נרשמים מאושרים
+              </span>
+            ) : (
+              <span>{approvedCount} נרשמים מאושרים</span>
+            )}
+          </div>
         </div>
       </Card>
 
