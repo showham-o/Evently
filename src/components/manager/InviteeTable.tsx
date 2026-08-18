@@ -48,8 +48,11 @@ export function InviteeTable({ invitees, onChanged }: InviteeTableProps) {
         <tbody className="divide-y divide-slate-100">
           {invitees.map((invitee) => (
             <tr key={invitee.id}>
-              <td className="px-4 py-3 text-slate-900">{invitee.profile.full_name}</td>
-              <td className="px-4 py-3 text-slate-500">{invitee.profile.email}</td>
+              <td className="px-4 py-3 text-slate-900">
+                {invitee.profile?.full_name ?? invitee.full_name}
+                {!invitee.profile && <span className="ms-2 text-xs font-normal text-slate-400">(אורח)</span>}
+              </td>
+              <td className="px-4 py-3 text-slate-500">{invitee.profile?.email ?? invitee.email}</td>
               <td className="px-4 py-3">
                 <StatusBadge status={invitee.rsvp_status} />
               </td>

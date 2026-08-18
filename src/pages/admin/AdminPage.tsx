@@ -29,9 +29,16 @@ export function AdminPage() {
     loadProfiles();
   }, []);
 
+  // Role changes are locked down at the DB level (regular column UPDATE
+  // grants exclude `role`), so promotion/demotion goes through the
+  // admin_set_role security-definer RPC, which itself verifies the caller
+  // is a super_admin.
   async function promoteToManager(id: string) {
     setUpdatingId(id);
-    const { error } = await supabase.from('profiles').update({ role: 'event_manager' }).eq('id', id);
+    const { error } = await supabase.rpc('admin_set_role', {
+      target_profile_id: id,
+      new_role: 'event_manager',
+    });
     setUpdatingId(null);
 
     if (error) {
@@ -51,7 +58,10 @@ export function AdminPage() {
       // Any event where this manager would become orphaned falls back to the admin performing the demotion.
       await reassignManagedEvents(target.id, currentAdmin.id);
 
-      const { error } = await supabase.from('profiles').update({ role: 'registered_user' }).eq('id', target.id);
+      const { error } = await supabase.rpc('admin_set_role', {
+        target_profile_id: target.id,
+        new_role: 'registered_user',
+      });
       if (error) throw error;
 
       toast.success('המשתמש הורד לתפקיד משתמש רשום');

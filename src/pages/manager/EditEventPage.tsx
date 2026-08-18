@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthProvider';
 import { supabase } from '../../lib/supabase/client';
 import { useEvent } from '../../hooks/useEvent';
+import { hasAnyInvitees } from '../../utils/rsvp';
 import type { Event } from '../../lib/supabase/types';
 import { PageContainer } from '../../components/layout/PageContainer';
 import { PageSkeleton } from '../../components/ui/Skeleton';
@@ -19,10 +20,16 @@ export function EditEventPage() {
   const { event: fetchedEvent, loading } = useEvent(eventId);
   const [event, setEvent] = useState<Event | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [hasInvitees, setHasInvitees] = useState(false);
 
   useEffect(() => {
     if (fetchedEvent) setEvent(fetchedEvent);
   }, [fetchedEvent]);
+
+  useEffect(() => {
+    if (!eventId) return;
+    hasAnyInvitees(eventId).then(setHasInvitees);
+  }, [eventId]);
 
   if (loading) return <PageSkeleton />;
 
@@ -57,6 +64,7 @@ export function EditEventPage() {
         max_capacity: values.max_capacity ? Number(values.max_capacity) : null,
         minimum_age: values.minimum_age ? Number(values.minimum_age) : null,
         status: values.status,
+        registration_mode: values.registration_mode,
       })
       .eq('id', eventId);
 
@@ -85,7 +93,13 @@ export function EditEventPage() {
       <h1 className="mb-6 text-2xl font-bold text-slate-900">עריכת אירוע</h1>
       <div className="flex flex-col gap-6">
         <Card className="p-6">
-          <EventForm initial={event} submitting={submitting} submitLabel="שמירת שינויים" onSubmit={handleSubmit} />
+          <EventForm
+            initial={event}
+            submitting={submitting}
+            submitLabel="שמירת שינויים"
+            onSubmit={handleSubmit}
+            lockRegistrationMode={hasInvitees}
+          />
         </Card>
 
         {profile && (

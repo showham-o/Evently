@@ -9,6 +9,7 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { RsvpForm } from '../components/events/RsvpForm';
+import { GuestRsvpForm } from '../components/events/GuestRsvpForm';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { formatEventDate } from '../utils/format';
@@ -113,7 +114,24 @@ export function EventDetailsPage() {
       </Card>
 
       {!user ? (
-        <LoginPromptCard />
+        event.registration_mode === 'anyone' ? (
+          <div className="flex flex-col gap-4">
+            <Card className="flex flex-col items-center justify-between gap-3 p-4 sm:flex-row">
+              <p className="text-sm text-slate-600">כבר יש לכם חשבון? התחברו כדי למלא את הפרטים אוטומטית</p>
+              <div className="flex shrink-0 gap-2">
+                <Link to="/login">
+                  <Button variant="outline">התחברות</Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="outline">הרשמה</Button>
+                </Link>
+              </div>
+            </Card>
+            <GuestRsvpForm event={event} approvedCount={approvedCount} onSubmitted={() => refetch()} />
+          </div>
+        ) : (
+          <LoginPromptCard />
+        )
       ) : !profile || inviteeLoading ? (
         <PageSkeleton />
       ) : (

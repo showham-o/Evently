@@ -143,11 +143,13 @@ Deno.serve(async (req) => {
     expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
     const { error: archiveError } = await supabaseAdmin.from('archived_profiles').insert({
-      original_profile_id: targetProfile.id,
+      id: crypto.randomUUID(),
+      auth_user_id: targetProfile.auth_user_id,
       full_name: targetProfile.full_name,
       email: targetProfile.email,
       phone: targetProfile.phone,
       age: targetProfile.age,
+      role: targetProfile.role,
       archived_at: now.toISOString(),
       expires_at: expiresAt.toISOString(),
     });

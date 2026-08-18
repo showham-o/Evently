@@ -1,17 +1,15 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { CheckCircle2, HelpCircle, XCircle } from 'lucide-react';
-import type { Event, EventInvitee, Profile, RsvpStatus } from '../../lib/supabase/types';
-import { isEventFull, submitRsvp } from '../../utils/rsvp';
+import type { Event, EventInvitee, RsvpStatus } from '../../lib/supabase/types';
+import { isEventFull, submitGuestRsvp } from '../../utils/rsvp';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { StatusBadge } from '../ui/StatusBadge';
+import { Input } from '../ui/Input';
 
-interface RsvpFormProps {
+interface GuestRsvpFormProps {
   event: Event;
-  profile: Profile;
   approvedCount: number;
-  existingInvitee: EventInvitee | null;
   onSubmitted: (invitee: EventInvitee) => void;
 }
 
@@ -21,17 +19,26 @@ const options: { value: RsvpStatus; label: string; icon: typeof CheckCircle2 }[]
   { value: 'maybe', label: 'אולי', icon: HelpCircle },
 ];
 
-export function RsvpForm({ event, profile, approvedCount, existingInvitee, onSubmitted }: RsvpFormProps) {
-  const [selected, setSelected] = useState<RsvpStatus | null>(existingInvitee?.rsvp_status ?? null);
+export function GuestRsvpForm({ event, approvedCount, onSubmitted }: GuestRsvpFormProps) {
+  const [selected, setSelected] = useState<RsvpStatus | null>(null);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [age, setAge] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const full = isEventFull(event, approvedCount);
+  const canSubmit = !!selected && !!fullName && !!email && !!phone && !!age;
 
   async function handleSubmit() {
-    if (!selected) return;
+    if (!canSubmit || !selected) return;
     setSubmitting(true);
     try {
-      const invitee = await submitRsvp(event.id, profile.id, selected);
+      const invitee = await submitGuestRsvp(
+        event.id,
+        { fullName, email, phone, age: Number(age) },
+        selected,
+      );
       onSubmitted(invitee);
 
       if (invitee.registration_status === 'rejected_age') {
@@ -39,7 +46,7 @@ export function RsvpForm({ event, profile, approvedCount, existingInvitee, onSub
       } else if (invitee.registration_status === 'waiting_list') {
         toast.warning('האירוע מלא - נוספת/ם לרשימת ההמתנה');
       } else {
-        toast.success('הרישום עודכן בהצלחה');
+        toast.success('הרישום נשלח בהצלחה');
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'אירעה שגיאה, נסו שוב');
@@ -51,15 +58,36 @@ export function RsvpForm({ event, profile, approvedCount, existingInvitee, onSub
   return (
     <Card className="p-6">
       <h3 className="mb-1 text-lg font-semibold text-slate-900">אישור הגעה</h3>
-      <p className="mb-4 text-sm text-slate-500">
-        שלום {profile.full_name}, נשמח לדעת אם תוכל/י להגיע לאירוע
-      </p>
+      <p className="mb-4 text-sm text-slate-500">אירוע זה פתוח גם למי שאינו רשום למערכת - מלאו את פרטיכם</p>
 
       {full && (
         <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           האירוע מלא - ההרשמה סגורה
         </div>
       )}
+
+      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Input id="guestFullName" label="שם מלא" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        <Input
+          id="guestEmail"
+          type="email"
+          label="אימייל"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <Input id="guestPhone" type="tel" label="טלפון" required value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <Input
+          id="guestAge"
+          type="number"
+          min={0}
+          max={120}
+          label="גיל"
+          required
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+        />
+      </div>
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {options.map(({ value, label, icon: Icon }) => (
@@ -79,14 +107,7 @@ export function RsvpForm({ event, profile, approvedCount, existingInvitee, onSub
         ))}
       </div>
 
-      {existingInvitee && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-slate-500">
-          הסטטוס הנוכחי שלך:
-          <StatusBadge status={existingInvitee.registration_status} />
-        </div>
-      )}
-
-      <Button onClick={handleSubmit} disabled={!selected} loading={submitting} className="w-full">
+      <Button onClick={handleSubmit} disabled={!canSubmit} loading={submitting} className="w-full">
         {submitting ? 'שולח...' : 'שליחת אישור הגעה'}
       </Button>
     </Card>

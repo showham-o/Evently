@@ -6,6 +6,7 @@ import { UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { useAuth } from '../context/AuthProvider';
 import { deleteArchivedProfile, findActiveArchivedProfile } from '../utils/archive';
+import { findGuestDetailsByEmail, linkGuestInviteesToProfile } from '../utils/rsvp';
 import { Card } from '../components/ui/Card';
 import { Input, PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -27,6 +28,7 @@ export function RegisterPage() {
 
   async function handleEmailBlur() {
     if (!email) return;
+
     const archived = await findActiveArchivedProfile(email);
     if (archived) {
       setArchivedProfileId(archived.id);
@@ -34,8 +36,17 @@ export function RegisterPage() {
       setPhone((current) => current || archived.phone || '');
       setAge((current) => current || (archived.age != null ? String(archived.age) : ''));
       toast.info('מצאנו חשבון קודם עם אימייל זה - שחזרנו את פרטיך');
-    } else {
-      setArchivedProfileId(null);
+      return;
+    }
+    setArchivedProfileId(null);
+
+    // No deleted-account history - check for a prior guest RSVP with this email instead.
+    const guestDetails = await findGuestDetailsByEmail(email);
+    if (guestDetails) {
+      setFullName((current) => current || guestDetails.fullName || '');
+      setPhone((current) => current || guestDetails.phone || '');
+      setAge((current) => current || (guestDetails.age != null ? String(guestDetails.age) : ''));
+      toast.info('מצאנו את הפרטים שמילאת בהרשמה קודמת כאורח לאירוע');
     }
   }
 
@@ -58,7 +69,20 @@ export function RegisterPage() {
 
     setSubmitting(true);
 
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+    // full_name/phone/age ride along as auth user metadata; a DB trigger
+    // (handle_new_auth_user) reads them to create the matching profiles row
+    // in the same transaction as signup, so there's no separate insert here.
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          phone: phone || null,
+          age: age || null,
+        },
+      },
+    });
 
     if (signUpError || !data.user) {
       setError(signUpError?.message ?? 'אירעה שגיאה בהרשמה');
@@ -66,25 +90,14 @@ export function RegisterPage() {
       return;
     }
 
-    const { error: profileError } = await supabase.from('profiles').insert({
-      auth_user_id: data.user.id,
-      full_name: fullName,
-      email,
-      phone: phone || null,
-      age: age ? Number(age) : null,
-      role: 'registered_user',
-    });
-
-    // A duplicate-key conflict means a DB trigger already created the profile row - not a real error.
-    if (profileError && profileError.code !== '23505') {
-      setError('החשבון נוצר אך אירעה שגיאה בשמירת הפרופיל, נסו להתחבר');
-      setSubmitting(false);
-      navigate('/login');
-      return;
-    }
-
     if (archivedProfileId) {
       await deleteArchivedProfile(archivedProfileId);
+    }
+
+    // Attach any prior guest RSVPs (this email, no account yet) to the new profile.
+    const { data: newProfile } = await supabase.from('profiles').select('id').eq('auth_user_id', data.user.id).maybeSingle();
+    if (newProfile) {
+      await linkGuestInviteesToProfile(email, newProfile.id);
     }
 
     toast.success('נרשמת בהצלחה!');

@@ -22,7 +22,7 @@ const statusConfig: Record<string, { label: string; tone: BadgeTone }> = {
   rejected: { label: 'נדחה', tone: 'red' },
   // rsvp status
   attending: { label: 'מגיע/ה', tone: 'green' },
-  not_attending: { label: 'לא מגיע/ה', tone: 'slate' },
+  declined: { label: 'לא מגיע/ה', tone: 'slate' },
   maybe: { label: 'אולי', tone: 'amber' },
   // roles
   super_admin: { label: 'מנהל-על', tone: 'indigo' },

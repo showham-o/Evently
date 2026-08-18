@@ -27,6 +27,7 @@ export function CreateEventPage() {
         max_capacity: values.max_capacity ? Number(values.max_capacity) : null,
         minimum_age: values.minimum_age ? Number(values.minimum_age) : null,
         status: values.status,
+        registration_mode: values.registration_mode,
         created_by: profile.id,
         manager_ids: [profile.id],
       })
@@ -40,11 +41,10 @@ export function CreateEventPage() {
     }
 
     // Creating an event elevates a registered_user to event_manager (super_admin stays as-is).
+    // Role changes are locked down at the DB level, so this goes through a
+    // security-definer RPC rather than a direct table update.
     if (profile.role === 'registered_user') {
-      const { error: roleError } = await supabase
-        .from('profiles')
-        .update({ role: 'event_manager' })
-        .eq('id', profile.id);
+      const { error: roleError } = await supabase.rpc('elevate_to_event_manager');
 
       if (!roleError) {
         await refreshProfile();

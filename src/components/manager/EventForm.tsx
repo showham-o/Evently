@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import type { Event, EventStatus } from '../../lib/supabase/types';
+import type { Event, EventStatus, RegistrationMode } from '../../lib/supabase/types';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 
@@ -12,6 +12,7 @@ export interface EventFormValues {
   max_capacity: string;
   minimum_age: string;
   status: EventStatus;
+  registration_mode: RegistrationMode;
 }
 
 interface EventFormProps {
@@ -19,6 +20,8 @@ interface EventFormProps {
   submitting: boolean;
   submitLabel: string;
   onSubmit: (values: EventFormValues) => void;
+  /** true once the event has at least one invitee - registration_mode can no longer change. */
+  lockRegistrationMode?: boolean;
 }
 
 function toDateTimeLocal(isoDate?: string): string {
@@ -35,7 +38,12 @@ const statusOptions: { value: EventStatus; label: string }[] = [
   { value: 'completed', label: 'הסתיים' },
 ];
 
-export function EventForm({ initial, submitting, submitLabel, onSubmit }: EventFormProps) {
+const registrationModeOptions: { value: RegistrationMode; label: string }[] = [
+  { value: 'registered_only', label: 'רק משתמשים רשומים' },
+  { value: 'anyone', label: 'כל אחד, כולל משתמשים לא רשומים' },
+];
+
+export function EventForm({ initial, submitting, submitLabel, onSubmit, lockRegistrationMode }: EventFormProps) {
   const [values, setValues] = useState<EventFormValues>({
     title: initial?.title ?? '',
     description: initial?.description ?? '',
@@ -44,6 +52,7 @@ export function EventForm({ initial, submitting, submitLabel, onSubmit }: EventF
     max_capacity: initial?.max_capacity != null ? String(initial.max_capacity) : '',
     minimum_age: initial?.minimum_age != null ? String(initial.minimum_age) : '',
     status: initial?.status ?? 'draft',
+    registration_mode: initial?.registration_mode ?? 'registered_only',
   });
 
   function update<K extends keyof EventFormValues>(key: K, value: EventFormValues[K]) {
@@ -111,6 +120,30 @@ export function EventForm({ initial, submitting, submitLabel, onSubmit }: EventF
           value={values.minimum_age}
           onChange={(e) => update('minimum_age', e.target.value)}
         />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="registration_mode" className="text-sm font-medium text-slate-700">
+          מי יכול להירשם לאירוע
+        </label>
+        <select
+          id="registration_mode"
+          value={values.registration_mode}
+          disabled={lockRegistrationMode}
+          onChange={(e) => update('registration_mode', e.target.value as RegistrationMode)}
+          className="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:bg-slate-100 disabled:text-slate-500"
+        >
+          {registrationModeOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {lockRegistrationMode && (
+          <p className="text-sm text-slate-500">
+            לא ניתן לשנות הגדרה זו לאחר שמישהו נרשם לאירוע.
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-1.5">

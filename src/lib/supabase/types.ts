@@ -13,9 +13,11 @@ export interface Profile {
 
 export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed';
 
+export type RegistrationMode = 'registered_only' | 'anyone';
+
 export interface Event {
   id: string;
-  created_by: string;
+  created_by: string | null;
   title: string;
   description: string | null;
   location: string | null;
@@ -24,17 +26,22 @@ export interface Event {
   max_capacity: number | null;
   minimum_age: number | null;
   manager_ids: string[];
+  registration_mode: RegistrationMode;
   created_at?: string;
 }
 
-export type RsvpStatus = 'attending' | 'not_attending' | 'maybe';
+export type RsvpStatus = 'attending' | 'declined' | 'maybe';
 
 export type RegistrationStatus = 'approved' | 'waiting_list' | 'rejected_age' | 'rejected' | 'cancelled';
 
 export interface EventInvitee {
   id: string;
   event_id: string;
-  profile_id: string;
+  profile_id: string | null;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  age: number | null;
   rsvp_status: RsvpStatus;
   registration_status: RegistrationStatus;
   registration_source: string;
@@ -42,16 +49,17 @@ export interface EventInvitee {
 }
 
 export interface EventInviteeWithProfile extends EventInvitee {
-  profile: Profile;
+  profile: Profile | null;
 }
 
 export interface ArchivedProfile {
   id: string;
-  original_profile_id: string | null;
+  auth_user_id: string | null;
   full_name: string | null;
   email: string;
   phone: string | null;
   age: number | null;
+  role: ProfileRole | null;
   archived_at: string;
   expires_at: string;
 }
