@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { CheckCircle2, HelpCircle, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import type { Event, EventInvitee, RsvpStatus } from '../../lib/supabase/types';
 import { isEventFull, submitGuestRsvp } from '../../utils/rsvp';
+import { isValidEmail, isValidPhone } from '../../utils/validation';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
@@ -13,10 +14,11 @@ interface GuestRsvpFormProps {
   onSubmitted: (invitee: EventInvitee) => void;
 }
 
+// "אולי" (maybe) isn't offered to unregistered guests - only registered
+// users get that option, via RsvpForm.
 const options: { value: RsvpStatus; label: string; icon: typeof CheckCircle2 }[] = [
   { value: 'attending', label: 'מגיע/ה', icon: CheckCircle2 },
   { value: 'declined', label: 'לא מגיע/ה', icon: XCircle },
-  { value: 'maybe', label: 'אולי', icon: HelpCircle },
 ];
 
 export function GuestRsvpForm({ event, approvedCount, onSubmitted }: GuestRsvpFormProps) {
@@ -32,6 +34,16 @@ export function GuestRsvpForm({ event, approvedCount, onSubmitted }: GuestRsvpFo
 
   async function handleSubmit() {
     if (!canSubmit || !selected) return;
+
+    if (!isValidEmail(email)) {
+      toast.error('כתובת אימייל לא תקינה');
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      toast.error('מספר טלפון לא תקין');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const invitee = await submitGuestRsvp(
@@ -89,7 +101,7 @@ export function GuestRsvpForm({ event, approvedCount, onSubmitted }: GuestRsvpFo
         />
       </div>
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {options.map(({ value, label, icon: Icon }) => (
           <button
             key={value}

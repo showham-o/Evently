@@ -12,6 +12,7 @@ import { Card } from '../../components/ui/Card';
 import { EventForm } from '../../components/manager/EventForm';
 import type { EventFormValues } from '../../components/manager/EventForm';
 import { ManagerPanel } from '../../components/manager/ManagerPanel';
+import { LogisticsPanel } from '../../components/manager/LogisticsPanel';
 
 export function EditEventPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -105,6 +106,8 @@ export function EditEventPage() {
         {profile && (
           <ManagerPanel event={event} currentProfileId={profile.id} onChanged={handleManagersChanged} />
         )}
+
+        <LogisticsPanel eventId={event.id} />
       </div>
     </PageContainer>
   );

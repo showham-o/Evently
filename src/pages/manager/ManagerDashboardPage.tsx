@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarPlus, LayoutDashboard, PencilLine, Users as UsersIcon } from 'lucide-react';
+import { CalendarPlus, LayoutDashboard, PencilLine, Trash2, Users as UsersIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthProvider';
 import { supabase } from '../../lib/supabase/client';
 import type { Event } from '../../lib/supabase/types';
@@ -16,31 +17,39 @@ export function ManagerDashboardPage() {
   const { profile } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function loadEvents() {
+    if (!profile) return;
+    setLoading(true);
+    const { data } = await supabase.from('events').select('*').order('event_date', { ascending: false });
+
+    const all = (data ?? []) as Event[];
+    const mine = profile.role === 'super_admin' ? all : all.filter((event) => event.manager_ids.includes(profile.id));
+    setEvents(mine);
+    setLoading(false);
+  }
 
   useEffect(() => {
-    if (!profile) return;
-    let mounted = true;
+    loadEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
 
-    async function load() {
-      setLoading(true);
-      const { data } = await supabase
-        .from('events')
-        .select('*')
-        .order('event_date', { ascending: false });
+  async function handleDelete(eventId: string) {
+    setDeletingId(eventId);
+    const { error } = await supabase.from('events').delete().eq('id', eventId);
+    setDeletingId(null);
 
-      if (!mounted) return;
-      const all = (data ?? []) as Event[];
-      const mine =
-        profile!.role === 'super_admin' ? all : all.filter((event) => event.manager_ids.includes(profile!.id));
-      setEvents(mine);
-      setLoading(false);
+    if (error) {
+      toast.error('מחיקת האירוע נכשלה');
+      return;
     }
 
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [profile]);
+    toast.success('האירוע נמחק בהצלחה');
+    setConfirmingDeleteId(null);
+    setEvents((current) => current.filter((e) => e.id !== eventId));
+  }
 
   return (
     <PageContainer>
@@ -95,6 +104,36 @@ export function ManagerDashboardPage() {
                   </Button>
                 </Link>
               </div>
+
+              {confirmingDeleteId === event.id ? (
+                <div className="flex gap-2">
+                  <Button
+                    variant="danger"
+                    loading={deletingId === event.id}
+                    onClick={() => handleDelete(event.id)}
+                    className="flex-1"
+                  >
+                    אישור מחיקה
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setConfirmingDeleteId(null)}
+                    disabled={deletingId === event.id}
+                    className="flex-1"
+                  >
+                    ביטול
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  icon={<Trash2 className="h-4 w-4 text-red-600" />}
+                  onClick={() => setConfirmingDeleteId(event.id)}
+                  className="text-red-600"
+                >
+                  מחיקת אירוע
+                </Button>
+              )}
             </Card>
           ))}
         </div>

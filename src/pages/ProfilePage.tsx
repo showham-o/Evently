@@ -10,8 +10,7 @@ import { PageSkeleton } from '../components/ui/Skeleton';
 import { Card } from '../components/ui/Card';
 import { Input, PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { isValidEmail } from '../utils/validation';
 
 export function ProfilePage() {
   const { profile, user, loading, refreshProfile, signOut } = useAuth();
@@ -34,7 +33,7 @@ export function ProfilePage() {
   async function handleDetailsSubmit(e: FormEvent) {
     e.preventDefault();
 
-    if (!EMAIL_RE.test(email)) {
+    if (!isValidEmail(email)) {
       toast.error('כתובת אימייל לא תקינה');
       return;
     }

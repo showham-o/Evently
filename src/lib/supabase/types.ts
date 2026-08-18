@@ -52,6 +52,19 @@ export interface EventInviteeWithProfile extends EventInvitee {
   profile: Profile | null;
 }
 
+export type LogisticsStatus = 'pending' | 'ordered' | 'received' | 'cancelled';
+
+export interface EventLogisticsItem {
+  id: string;
+  event_id: string;
+  item_name: string;
+  quantity: number | null;
+  supplier_name: string | null;
+  cost: number | null;
+  status: LogisticsStatus;
+  created_at?: string;
+}
+
 export interface ArchivedProfile {
   id: string;
   auth_user_id: string | null;

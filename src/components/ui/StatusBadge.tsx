@@ -24,6 +24,10 @@ const statusConfig: Record<string, { label: string; tone: BadgeTone }> = {
   attending: { label: 'מגיע/ה', tone: 'green' },
   declined: { label: 'לא מגיע/ה', tone: 'slate' },
   maybe: { label: 'אולי', tone: 'amber' },
+  // logistics status
+  pending: { label: 'ממתין', tone: 'amber' },
+  ordered: { label: 'הוזמן', tone: 'indigo' },
+  received: { label: 'התקבל', tone: 'green' },
   // roles
   super_admin: { label: 'מנהל-על', tone: 'indigo' },
   event_manager: { label: 'מנהל אירועים', tone: 'indigo' },

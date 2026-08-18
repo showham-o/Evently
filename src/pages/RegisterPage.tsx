@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase/client';
 import { useAuth } from '../context/AuthProvider';
 import { deleteArchivedProfile, findActiveArchivedProfile } from '../utils/archive';
 import { findGuestDetailsByEmail, linkGuestInviteesToProfile } from '../utils/rsvp';
+import { isValidEmail, isValidPhone } from '../utils/validation';
 import { Card } from '../components/ui/Card';
 import { Input, PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -58,6 +59,18 @@ export function RegisterPage() {
     e.preventDefault();
     setError(null);
 
+    if (!fullName || !email || !phone || !age) {
+      setError('יש למלא שם מלא, אימייל, טלפון וגיל');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setError('כתובת אימייל לא תקינה');
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      setError('מספר טלפון לא תקין');
+      return;
+    }
     if (password !== confirmPassword) {
       setError('הסיסמאות אינן תואמות');
       return;
@@ -136,6 +149,7 @@ export function RegisterPage() {
             id="phone"
             type="tel"
             label="טלפון"
+            required
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
@@ -145,6 +159,7 @@ export function RegisterPage() {
             label="גיל"
             min={0}
             max={120}
+            required
             value={age}
             onChange={(e) => setAge(e.target.value)}
           />
