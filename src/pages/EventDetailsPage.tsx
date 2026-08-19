@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarDays, Lock, MapPin, Users } from 'lucide-react';
+import { CalendarDays, Lock, MapPin, Repeat, User as UserIcon, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthProvider';
 import { useEvent } from '../hooks/useEvent';
 import { getMyInvitee } from '../utils/rsvp';
@@ -100,6 +100,16 @@ export function EventDetailsPage() {
               {event.location}
             </div>
           )}
+          {event.recurrence_label && (
+            <div className="flex items-center gap-2">
+              <Repeat className="h-4 w-4 shrink-0" />
+              {event.recurrence_label}
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <UserIcon className="h-4 w-4 shrink-0" />
+            {event.creator ? `נוצר על ידי ${event.creator.full_name}` : 'נוצר על ידי משתמש שאינו זמין יותר'}
+          </div>
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 shrink-0" />
             {!!event.max_capacity && event.max_capacity > 0 ? (

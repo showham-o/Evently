@@ -27,7 +27,17 @@ export interface Event {
   minimum_age: number | null;
   manager_ids: string[];
   registration_mode: RegistrationMode;
+  recurrence_label: string | null;
   created_at?: string;
+}
+
+export interface EventCreator {
+  id: string;
+  full_name: string;
+}
+
+export interface EventWithCreator extends Event {
+  creator: EventCreator | null;
 }
 
 export type RsvpStatus = 'attending' | 'declined' | 'maybe';

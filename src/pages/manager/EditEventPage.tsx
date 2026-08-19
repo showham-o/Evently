@@ -23,6 +23,7 @@ export function EditEventPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [hasInvitees, setHasInvitees] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
 
   useEffect(() => {
     if (fetchedEvent) setEvent(fetchedEvent);
@@ -94,7 +95,7 @@ export function EditEventPage() {
 
   return (
     <PageContainer className="max-w-2xl">
-      <BackButton className="mb-4" />
+      <BackButton className="mb-4" isDirty={formDirty} />
       <h1 className="mb-6 text-2xl font-bold text-slate-900">עריכת אירוע</h1>
       <div className="flex flex-col gap-6">
         <Card className="p-6">
@@ -104,6 +105,7 @@ export function EditEventPage() {
             submitLabel="שמירת שינויים"
             onSubmit={handleSubmit}
             lockRegistrationMode={hasInvitees}
+            onDirtyChange={setFormDirty}
           />
         </Card>
 

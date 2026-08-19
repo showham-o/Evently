@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { CalendarX } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
-import type { Event } from '../lib/supabase/types';
+import type { EventWithCreator } from '../lib/supabase/types';
 import { PageContainer } from '../components/layout/PageContainer';
 import { EventCard } from '../components/events/EventCard';
 import { EventCardSkeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 
 export function HomePage() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventWithCreator[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
@@ -19,12 +19,12 @@ export function HomePage() {
       setLoading(true);
       const { data } = await supabase
         .from('events')
-        .select('*')
+        .select('*, creator:profiles!created_by(id,full_name)')
         .eq('status', 'published')
         .order('event_date', { ascending: true });
 
       if (!mounted) return;
-      const list = (data ?? []) as Event[];
+      const list = (data ?? []) as unknown as EventWithCreator[];
       setEvents(list);
 
       const countsResult: Record<string, number> = {};
@@ -73,7 +73,12 @@ export function HomePage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event) => (
-            <EventCard key={event.id} event={event} approvedCount={counts[event.id]} />
+            <EventCard
+              key={event.id}
+              event={event}
+              approvedCount={counts[event.id]}
+              creatorName={event.creator?.full_name}
+            />
           ))}
         </div>
       )}

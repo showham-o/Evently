@@ -114,6 +114,7 @@ export async function submitGuestRsvp(
   eventId: string,
   guest: GuestDetails,
   rsvpStatus: RsvpStatus,
+  options?: { bypassRegistrationModeCheck?: boolean },
 ): Promise<EventInvitee> {
   const { data: event, error: eventError } = await supabase
     .from('events')
@@ -122,7 +123,11 @@ export async function submitGuestRsvp(
     .single();
 
   if (eventError) throw eventError;
-  if (event.registration_mode !== 'anyone') {
+  // Public self-service guest RSVP only works when the event allows it; an
+  // event manager adding a non-registered invitee manually (see
+  // AddInviteeModal) bypasses this, since they have explicit authority to
+  // add anyone regardless of the event's public registration setting.
+  if (!options?.bypassRegistrationModeCheck && event.registration_mode !== 'anyone') {
     throw new Error('האירוע פתוח לרישום למשתמשים רשומים בלבד');
   }
 

@@ -47,6 +47,12 @@ export function ProfilePage() {
   if (loading) return <PageSkeleton />;
   if (!profile || !user) return <PageSkeleton />;
 
+  const profileDirty =
+    fullName.value !== (profile.full_name ?? '') ||
+    email.value !== (profile.email ?? '') ||
+    password.value !== '' ||
+    confirmPassword.value !== '';
+
   async function handleDetailsSubmit(e: FormEvent) {
     e.preventDefault();
 
@@ -129,7 +135,7 @@ export function ProfilePage() {
 
   return (
     <PageContainer className="max-w-2xl">
-      <BackButton className="mb-4" />
+      <BackButton className="mb-4" isDirty={profileDirty} />
       <div className="mb-6 flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600">
           <UserRound className="h-6 w-6" />

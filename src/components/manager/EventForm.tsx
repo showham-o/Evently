@@ -1,8 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { toast } from 'sonner';
 import type { Event, EventStatus, RegistrationMode } from '../../lib/supabase/types';
+import type { RecurrenceFrequency } from '../../utils/recurrence';
+import { FREQUENCY_LABELS, isEndDateRequired, maxRecurrenceEndDate, parseLocalDate, WEEKDAY_LABELS } from '../../utils/recurrence';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+
+export type RecurrenceValue =
+  | { type: 'once' }
+  | {
+      type: 'recurring';
+      frequency: RecurrenceFrequency;
+      weekday: number; // only meaningful when frequency === 'weekly'
+      time: string;
+      startDate: string;
+      endDate: string; // empty string = no end date (only valid when frequency === 'yearly')
+    };
 
 export interface EventFormValues {
   title: string;
@@ -13,6 +27,7 @@ export interface EventFormValues {
   minimum_age: string;
   status: EventStatus;
   registration_mode: RegistrationMode;
+  recurrence: RecurrenceValue;
 }
 
 interface EventFormProps {
@@ -22,6 +37,24 @@ interface EventFormProps {
   onSubmit: (values: EventFormValues) => void;
   /** true once the event has at least one invitee - registration_mode can no longer change. */
   lockRegistrationMode?: boolean;
+  /** Only offered when creating a new event - editing always targets a single occurrence. */
+  allowRecurrence?: boolean;
+  /** Called whenever the form's dirty state changes (values differ from their initial snapshot). */
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
+function buildInitialValues(initial?: Event): EventFormValues {
+  return {
+    title: initial?.title ?? '',
+    description: initial?.description ?? '',
+    location: initial?.location ?? '',
+    event_date: toDateTimeLocal(initial?.event_date),
+    max_capacity: initial?.max_capacity != null ? String(initial.max_capacity) : '',
+    minimum_age: initial?.minimum_age != null ? String(initial.minimum_age) : '',
+    status: initial?.status ?? 'draft',
+    registration_mode: initial?.registration_mode ?? 'registered_only',
+    recurrence: { type: 'once' },
+  };
 }
 
 function toDateTimeLocal(isoDate?: string): string {
@@ -43,26 +76,89 @@ const registrationModeOptions: { value: RegistrationMode; label: string }[] = [
   { value: 'anyone', label: 'כל אחד, כולל משתמשים לא רשומים' },
 ];
 
-export function EventForm({ initial, submitting, submitLabel, onSubmit, lockRegistrationMode }: EventFormProps) {
-  const [values, setValues] = useState<EventFormValues>({
-    title: initial?.title ?? '',
-    description: initial?.description ?? '',
-    location: initial?.location ?? '',
-    event_date: toDateTimeLocal(initial?.event_date),
-    max_capacity: initial?.max_capacity != null ? String(initial.max_capacity) : '',
-    minimum_age: initial?.minimum_age != null ? String(initial.minimum_age) : '',
-    status: initial?.status ?? 'draft',
-    registration_mode: initial?.registration_mode ?? 'registered_only',
-  });
+const frequencyOptions: RecurrenceFrequency[] = ['daily', 'weekly', 'monthly', 'yearly'];
+
+export function EventForm({
+  initial,
+  submitting,
+  submitLabel,
+  onSubmit,
+  lockRegistrationMode,
+  allowRecurrence,
+  onDirtyChange,
+}: EventFormProps) {
+  const [values, setValues] = useState<EventFormValues>(() => buildInitialValues(initial));
+  const initialSnapshotRef = useRef(JSON.stringify(values));
+  const [recurrenceError, setRecurrenceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    onDirtyChange?.(JSON.stringify(values) !== initialSnapshotRef.current);
+  }, [values, onDirtyChange]);
 
   function update<K extends keyof EventFormValues>(key: K, value: EventFormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
+  function updateRecurrence(patch: Partial<Extract<RecurrenceValue, { type: 'recurring' }>>) {
+    setValues((prev) => ({
+      ...prev,
+      recurrence: {
+        type: 'recurring',
+        frequency: prev.recurrence.type === 'recurring' ? prev.recurrence.frequency : 'weekly',
+        weekday: prev.recurrence.type === 'recurring' ? prev.recurrence.weekday : 2,
+        time: prev.recurrence.type === 'recurring' ? prev.recurrence.time : '16:00',
+        startDate: prev.recurrence.type === 'recurring' ? prev.recurrence.startDate : '',
+        endDate: prev.recurrence.type === 'recurring' ? prev.recurrence.endDate : '',
+        ...patch,
+      },
+    }));
+  }
+
+  function validateRecurrence(): boolean {
+    if (values.recurrence.type !== 'recurring') return true;
+    const { frequency, startDate, endDate } = values.recurrence;
+
+    if (!startDate) {
+      setRecurrenceError('יש לבחור תאריך התחלה');
+      return false;
+    }
+
+    if (!isEndDateRequired(frequency)) {
+      // Yearly: end date is optional (open-ended), but if given must make sense.
+      if (endDate && parseLocalDate(endDate) < parseLocalDate(startDate)) {
+        setRecurrenceError('תאריך הסיום חייב להיות אחרי תאריך ההתחלה');
+        return false;
+      }
+      setRecurrenceError(null);
+      return true;
+    }
+
+    if (!endDate) {
+      setRecurrenceError('יש לבחור תאריך סיום');
+      return false;
+    }
+    if (parseLocalDate(endDate) < parseLocalDate(startDate)) {
+      setRecurrenceError('תאריך הסיום חייב להיות אחרי תאריך ההתחלה');
+      return false;
+    }
+    if (parseLocalDate(endDate) > maxRecurrenceEndDate(startDate)) {
+      setRecurrenceError('טווח החזרה מוגבל לשנה אחת לכל היותר מתאריך ההתחלה');
+      return false;
+    }
+    setRecurrenceError(null);
+    return true;
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!validateRecurrence()) {
+      toast.error('יש לתקן את פרטי החזרה על האירוע');
+      return;
+    }
     onSubmit(values);
   }
+
+  const recurring = values.recurrence.type === 'recurring' ? values.recurrence : null;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -94,14 +190,116 @@ export function EventForm({ initial, submitting, submitLabel, onSubmit, lockRegi
         onChange={(e) => update('location', e.target.value)}
       />
 
-      <Input
-        id="event_date"
-        type="datetime-local"
-        label="תאריך ושעה"
-        required
-        value={values.event_date}
-        onChange={(e) => update('event_date', e.target.value)}
-      />
+      {allowRecurrence && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="recurrenceType" className="text-sm font-medium text-slate-700">
+            סוג אירוע
+          </label>
+          <select
+            id="recurrenceType"
+            value={values.recurrence.type}
+            onChange={(e) => {
+              if (e.target.value === 'once') {
+                setValues((prev) => ({ ...prev, recurrence: { type: 'once' } }));
+                setRecurrenceError(null);
+              } else {
+                updateRecurrence({});
+              }
+            }}
+            className="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+          >
+            <option value="once">אירוע חד פעמי</option>
+            <option value="recurring">אירוע חוזר</option>
+          </select>
+        </div>
+      )}
+
+      {recurring ? (
+        <div className="flex flex-col gap-4 rounded-xl border border-slate-200 p-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="recurrenceFrequency" className="text-sm font-medium text-slate-700">
+                תדירות
+              </label>
+              <select
+                id="recurrenceFrequency"
+                value={recurring.frequency}
+                onChange={(e) => updateRecurrence({ frequency: e.target.value as RecurrenceFrequency, endDate: '' })}
+                className="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+              >
+                {frequencyOptions.map((freq) => (
+                  <option key={freq} value={freq}>
+                    {FREQUENCY_LABELS[freq]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Input
+              id="recurrenceTime"
+              type="time"
+              label="שעה"
+              required
+              value={recurring.time}
+              onChange={(e) => updateRecurrence({ time: e.target.value })}
+            />
+          </div>
+
+          {recurring.frequency === 'weekly' && (
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="recurrenceWeekday" className="text-sm font-medium text-slate-700">
+                יום בשבוע
+              </label>
+              <select
+                id="recurrenceWeekday"
+                value={recurring.weekday}
+                onChange={(e) => updateRecurrence({ weekday: Number(e.target.value) })}
+                className="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+              >
+                {WEEKDAY_LABELS.map((label, index) => (
+                  <option key={index} value={index}>
+                    יום {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              id="recurrenceStartDate"
+              type="date"
+              label="תאריך התחלה"
+              required
+              value={recurring.startDate}
+              onChange={(e) => updateRecurrence({ startDate: e.target.value })}
+            />
+            <Input
+              id="recurrenceEndDate"
+              type="date"
+              label={isEndDateRequired(recurring.frequency) ? 'תאריך סיום' : 'תאריך סיום (אופציונלי)'}
+              required={isEndDateRequired(recurring.frequency)}
+              value={recurring.endDate}
+              onChange={(e) => updateRecurrence({ endDate: e.target.value })}
+            />
+          </div>
+
+          <p className="text-sm text-slate-500">
+            {isEndDateRequired(recurring.frequency)
+              ? 'טווח החזרה מוגבל לשנה אחת לכל היותר מתאריך ההתחלה.'
+              : 'אירוע שנתי ללא תאריך סיום - אם לא ייבחר תאריך סיום, ייווצרו מופעים ל-10 השנים הקרובות.'}
+          </p>
+          {recurrenceError && <p className="text-sm text-red-600">{recurrenceError}</p>}
+        </div>
+      ) : (
+        <Input
+          id="event_date"
+          type="datetime-local"
+          label="תאריך ושעה"
+          required
+          value={values.event_date}
+          onChange={(e) => update('event_date', e.target.value)}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <Input

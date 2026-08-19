@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CalendarDays, MapPin, Users } from 'lucide-react';
+import { CalendarDays, MapPin, Repeat, User as UserIcon, Users } from 'lucide-react';
 import type { Event } from '../../lib/supabase/types';
 import { StatusBadge } from '../ui/StatusBadge';
 import { formatEventDate } from '../../utils/format';
@@ -7,10 +7,11 @@ import { formatEventDate } from '../../utils/format';
 interface EventCardProps {
   event: Event;
   approvedCount?: number;
+  creatorName?: string | null;
   linkTo?: string;
 }
 
-export function EventCard({ event, approvedCount, linkTo }: EventCardProps) {
+export function EventCard({ event, approvedCount, creatorName, linkTo }: EventCardProps) {
   const isFull =
     !!event.max_capacity && event.max_capacity > 0 && (approvedCount ?? 0) >= event.max_capacity;
 
@@ -31,10 +32,22 @@ export function EventCard({ event, approvedCount, linkTo }: EventCardProps) {
           <CalendarDays className="h-4 w-4 shrink-0" />
           {formatEventDate(event.event_date)}
         </div>
+        {event.recurrence_label && (
+          <div className="flex items-center gap-1.5">
+            <Repeat className="h-4 w-4 shrink-0" />
+            {event.recurrence_label}
+          </div>
+        )}
         {event.location && (
           <div className="flex items-center gap-1.5">
             <MapPin className="h-4 w-4 shrink-0" />
             {event.location}
+          </div>
+        )}
+        {creatorName && (
+          <div className="flex items-center gap-1.5">
+            <UserIcon className="h-4 w-4 shrink-0" />
+            {creatorName}
           </div>
         )}
         <div className="flex items-center gap-1.5">
