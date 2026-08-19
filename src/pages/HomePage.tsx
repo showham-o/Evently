@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { CalendarX } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import type { EventWithCreator } from '../lib/supabase/types';
+import { groupEventsBySeries } from '../utils/recurrence';
 import { PageContainer } from '../components/layout/PageContainer';
 import { EventCard } from '../components/events/EventCard';
 import { EventCardSkeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 
+type EventListItem = EventWithCreator & { occurrenceCount: number };
+
 export function HomePage() {
-  const [events, setEvents] = useState<EventWithCreator[]>([]);
+  const [events, setEvents] = useState<EventListItem[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +27,9 @@ export function HomePage() {
         .order('event_date', { ascending: true });
 
       if (!mounted) return;
-      const list = (data ?? []) as unknown as EventWithCreator[];
+      // A recurring series is stored as one row per occurrence (each with
+      // its own capacity/invitee list) - collapse to one card per series.
+      const list = groupEventsBySeries((data ?? []) as unknown as EventWithCreator[]);
       setEvents(list);
 
       const countsResult: Record<string, number> = {};
@@ -78,6 +83,7 @@ export function HomePage() {
               event={event}
               approvedCount={counts[event.id]}
               creatorName={event.creator?.full_name}
+              occurrenceCount={event.occurrenceCount}
             />
           ))}
         </div>

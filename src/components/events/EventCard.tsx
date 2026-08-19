@@ -8,10 +8,12 @@ interface EventCardProps {
   event: Event;
   approvedCount?: number;
   creatorName?: string | null;
+  /** Total occurrences in this event's recurring series, if it's part of one. */
+  occurrenceCount?: number;
   linkTo?: string;
 }
 
-export function EventCard({ event, approvedCount, creatorName, linkTo }: EventCardProps) {
+export function EventCard({ event, approvedCount, creatorName, occurrenceCount, linkTo }: EventCardProps) {
   const isFull =
     !!event.max_capacity && event.max_capacity > 0 && (approvedCount ?? 0) >= event.max_capacity;
 
@@ -36,6 +38,7 @@ export function EventCard({ event, approvedCount, creatorName, linkTo }: EventCa
           <div className="flex items-center gap-1.5">
             <Repeat className="h-4 w-4 shrink-0" />
             {event.recurrence_label}
+            {!!occurrenceCount && occurrenceCount > 1 && ` · ${occurrenceCount} מופעים`}
           </div>
         )}
         {event.location && (

@@ -36,7 +36,7 @@ export function CreateEventPage() {
       manager_ids: [profile.id],
     };
 
-    let rows: { event_date: string; recurrence_label: string | null }[];
+    let rows: { event_date: string; recurrence_label: string | null; recurrence_group_id: string | null }[];
     if (values.recurrence.type === 'recurring') {
       const { frequency, weekday, time, startDate, endDate } = values.recurrence;
       const occurrences = computeOccurrences({
@@ -52,9 +52,14 @@ export function CreateEventPage() {
         return;
       }
       const label = describeRecurrence(frequency, time, weekday);
-      rows = occurrences.map((date) => ({ event_date: date.toISOString(), recurrence_label: label }));
+      const groupId = crypto.randomUUID();
+      rows = occurrences.map((date) => ({
+        event_date: date.toISOString(),
+        recurrence_label: label,
+        recurrence_group_id: groupId,
+      }));
     } else {
-      rows = [{ event_date: new Date(values.event_date).toISOString(), recurrence_label: null }];
+      rows = [{ event_date: new Date(values.event_date).toISOString(), recurrence_label: null, recurrence_group_id: null }];
     }
 
     const { data, error } = await supabase

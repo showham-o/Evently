@@ -28,6 +28,7 @@ export interface Event {
   manager_ids: string[];
   registration_mode: RegistrationMode;
   recurrence_label: string | null;
+  recurrence_group_id: string | null;
   created_at?: string;
 }
 

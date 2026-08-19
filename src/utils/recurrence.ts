@@ -107,6 +107,39 @@ export function computeOccurrences({ frequency, time, startDate, endDate, weekda
   return occurrences;
 }
 
+/**
+ * Collapses a recurring series (many independent event rows sharing a
+ * recurrence_group_id - each with its own capacity/invitee list) down to one
+ * representative per series for listings, so a weekly meeting doesn't show
+ * up as 52 near-identical cards. Standalone (non-recurring) events are their
+ * own group of one. Picks the next upcoming occurrence as the
+ * representative, or the most recent past one if the whole series is over.
+ */
+export function groupEventsBySeries<
+  T extends { id: string; recurrence_group_id: string | null; event_date: string },
+>(events: T[]): (T & { occurrenceCount: number })[] {
+  const groups = new Map<string, T[]>();
+  for (const event of events) {
+    const key = event.recurrence_group_id ?? event.id;
+    const list = groups.get(key);
+    if (list) list.push(event);
+    else groups.set(key, [event]);
+  }
+
+  const now = Date.now();
+  const representatives: (T & { occurrenceCount: number })[] = [];
+
+  for (const group of groups.values()) {
+    const sorted = [...group].sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+    const upcoming = sorted.find((e) => new Date(e.event_date).getTime() >= now);
+    const representative = upcoming ?? sorted[sorted.length - 1];
+    representatives.push({ ...representative, occurrenceCount: group.length });
+  }
+
+  representatives.sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+  return representatives;
+}
+
 export function describeRecurrence(frequency: RecurrenceFrequency, time: string, weekday?: number): string {
   switch (frequency) {
     case 'daily':
