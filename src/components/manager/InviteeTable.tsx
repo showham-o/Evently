@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Check, Users, X } from 'lucide-react';
+import { Check, PencilLine, Trash2, Users, X } from 'lucide-react';
 import type { EventInviteeWithProfile } from '../../lib/supabase/types';
 import { supabase } from '../../lib/supabase/client';
 import { StatusBadge } from '../ui/StatusBadge';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
+import { EditInviteeModal } from './EditInviteeModal';
 
 interface InviteeTableProps {
   invitees: EventInviteeWithProfile[];
@@ -14,6 +15,9 @@ interface InviteeTableProps {
 
 export function InviteeTable({ invitees, onChanged }: InviteeTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingInvitee, setEditingInvitee] = useState<EventInviteeWithProfile | null>(null);
 
   async function updateStatus(id: string, registration_status: 'approved' | 'rejected') {
     setUpdatingId(id);
@@ -26,6 +30,21 @@ export function InviteeTable({ invitees, onChanged }: InviteeTableProps) {
     }
 
     toast.success('הסטטוס עודכן');
+    onChanged();
+  }
+
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    const { error } = await supabase.from('event_invitees').delete().eq('id', id);
+    setDeletingId(null);
+
+    if (error) {
+      toast.error('מחיקת הנרשם נכשלה');
+      return;
+    }
+
+    toast.success('הנרשם נמחק בהצלחה');
+    setConfirmingDeleteId(null);
     onChanged();
   }
 
@@ -60,25 +79,66 @@ export function InviteeTable({ invitees, onChanged }: InviteeTableProps) {
                 <StatusBadge status={invitee.registration_status} />
               </td>
               <td className="px-4 py-3">
-                {invitee.registration_status === 'waiting_list' && (
+                {confirmingDeleteId === invitee.id ? (
                   <div className="flex gap-2">
                     <Button
-                      variant="outline"
+                      variant="danger"
                       className="!px-2.5 !py-1.5"
-                      loading={updatingId === invitee.id}
-                      onClick={() => updateStatus(invitee.id, 'approved')}
-                      aria-label="אישור"
+                      loading={deletingId === invitee.id}
+                      onClick={() => handleDelete(invitee.id)}
                     >
-                      <Check className="h-4 w-4 text-emerald-600" />
+                      אישור מחיקה
                     </Button>
+                    <Button
+                      variant="ghost"
+                      className="!px-2.5 !py-1.5"
+                      disabled={deletingId === invitee.id}
+                      onClick={() => setConfirmingDeleteId(null)}
+                    >
+                      ביטול
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    {invitee.registration_status === 'waiting_list' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          className="!px-2.5 !py-1.5"
+                          loading={updatingId === invitee.id}
+                          onClick={() => updateStatus(invitee.id, 'approved')}
+                          aria-label="אישור"
+                        >
+                          <Check className="h-4 w-4 text-emerald-600" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="!px-2.5 !py-1.5"
+                          loading={updatingId === invitee.id}
+                          onClick={() => updateStatus(invitee.id, 'rejected')}
+                          aria-label="דחייה"
+                        >
+                          <X className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </>
+                    )}
+                    {!invitee.profile && (
+                      <Button
+                        variant="outline"
+                        className="!px-2.5 !py-1.5"
+                        onClick={() => setEditingInvitee(invitee)}
+                        aria-label="עריכה"
+                      >
+                        <PencilLine className="h-4 w-4 text-slate-600" />
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       className="!px-2.5 !py-1.5"
-                      loading={updatingId === invitee.id}
-                      onClick={() => updateStatus(invitee.id, 'rejected')}
-                      aria-label="דחייה"
+                      onClick={() => setConfirmingDeleteId(invitee.id)}
+                      aria-label="מחיקה"
                     >
-                      <X className="h-4 w-4 text-red-600" />
+                      <Trash2 className="h-4 w-4 text-red-600" />
                     </Button>
                   </div>
                 )}
@@ -87,6 +147,8 @@ export function InviteeTable({ invitees, onChanged }: InviteeTableProps) {
           ))}
         </tbody>
       </table>
+
+      <EditInviteeModal invitee={editingInvitee} onClose={() => setEditingInvitee(null)} onSaved={onChanged} />
     </div>
   );
 }
