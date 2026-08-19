@@ -5,9 +5,17 @@ import { toast } from 'sonner';
 import { UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { useAuth } from '../context/AuthProvider';
+import { useValidatedInput } from '../hooks/useValidatedInput';
 import { deleteArchivedProfile, findActiveArchivedProfile } from '../utils/archive';
 import { findGuestDetailsByEmail, linkGuestInviteesToProfile } from '../utils/rsvp';
-import { isValidEmail, isValidPhone } from '../utils/validation';
+import {
+  ageValidator,
+  confirmPasswordValidator,
+  emailValidator,
+  passwordValidator,
+  phoneValidator,
+  requiredValidator,
+} from '../utils/validation';
 import { Card } from '../components/ui/Card';
 import { Input, PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -17,36 +25,37 @@ export function RegisterPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [age, setAge] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const fullName = useValidatedInput('', requiredValidator('שם מלא'));
+  const email = useValidatedInput('', emailValidator);
+  const phone = useValidatedInput('', phoneValidator);
+  const age = useValidatedInput('', ageValidator);
+  const password = useValidatedInput('', passwordValidator);
+  const confirmPassword = useValidatedInput('', confirmPasswordValidator(() => password.value));
+
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [archivedProfileId, setArchivedProfileId] = useState<string | null>(null);
 
   async function handleEmailBlur() {
-    if (!email) return;
+    email.onBlur();
+    if (!email.value) return;
 
-    const archived = await findActiveArchivedProfile(email);
+    const archived = await findActiveArchivedProfile(email.value);
     if (archived) {
       setArchivedProfileId(archived.id);
-      setFullName((current) => current || archived.full_name || '');
-      setPhone((current) => current || archived.phone || '');
-      setAge((current) => current || (archived.age != null ? String(archived.age) : ''));
+      if (!fullName.value) fullName.setValue(archived.full_name || '');
+      if (!phone.value) phone.setValue(archived.phone || '');
+      if (!age.value) age.setValue(archived.age != null ? String(archived.age) : '');
       toast.info('מצאנו חשבון קודם עם אימייל זה - שחזרנו את פרטיך');
       return;
     }
     setArchivedProfileId(null);
 
     // No deleted-account history - check for a prior guest RSVP with this email instead.
-    const guestDetails = await findGuestDetailsByEmail(email);
+    const guestDetails = await findGuestDetailsByEmail(email.value);
     if (guestDetails) {
-      setFullName((current) => current || guestDetails.fullName || '');
-      setPhone((current) => current || guestDetails.phone || '');
-      setAge((current) => current || (guestDetails.age != null ? String(guestDetails.age) : ''));
+      if (!fullName.value) fullName.setValue(guestDetails.fullName || '');
+      if (!phone.value) phone.setValue(guestDetails.phone || '');
+      if (!age.value) age.setValue(guestDetails.age != null ? String(guestDetails.age) : '');
       toast.info('מצאנו את הפרטים שמילאת בהרשמה קודמת כאורח לאירוע');
     }
   }
@@ -57,28 +66,16 @@ export function RegisterPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
 
-    if (!fullName || !email || !phone || !age) {
-      setError('יש למלא שם מלא, אימייל, טלפון וגיל');
-      return;
-    }
-    if (!isValidEmail(email)) {
-      setError('כתובת אימייל לא תקינה');
-      return;
-    }
-    if (!isValidPhone(phone)) {
-      setError('מספר טלפון לא תקין');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('הסיסמאות אינן תואמות');
-      return;
-    }
-    if (password.length < 6) {
-      setError('הסיסמה חייבת להכיל לפחות 6 תווים');
-      return;
-    }
+    const validations = [
+      fullName.validateNow(),
+      email.validateNow(),
+      phone.validateNow(),
+      age.validateNow(),
+      password.validateNow(),
+      confirmPassword.validateNow(),
+    ];
+    if (validations.some((valid) => !valid)) return;
 
     setSubmitting(true);
 
@@ -86,19 +83,19 @@ export function RegisterPage() {
     // (handle_new_auth_user) reads them to create the matching profiles row
     // in the same transaction as signup, so there's no separate insert here.
     const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
+      email: email.value,
+      password: password.value,
       options: {
         data: {
-          full_name: fullName,
-          phone: phone || null,
-          age: age || null,
+          full_name: fullName.value,
+          phone: phone.value || null,
+          age: age.value || null,
         },
       },
     });
 
     if (signUpError || !data.user) {
-      setError(signUpError?.message ?? 'אירעה שגיאה בהרשמה');
+      toast.error(signUpError?.message ?? 'אירעה שגיאה בהרשמה');
       setSubmitting(false);
       return;
     }
@@ -108,9 +105,13 @@ export function RegisterPage() {
     }
 
     // Attach any prior guest RSVPs (this email, no account yet) to the new profile.
-    const { data: newProfile } = await supabase.from('profiles').select('id').eq('auth_user_id', data.user.id).maybeSingle();
+    const { data: newProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('auth_user_id', data.user.id)
+      .maybeSingle();
     if (newProfile) {
-      await linkGuestInviteesToProfile(email, newProfile.id);
+      await linkGuestInviteesToProfile(email.value, newProfile.id);
     }
 
     toast.success('נרשמת בהצלחה!');
@@ -127,21 +128,24 @@ export function RegisterPage() {
           <h1 className="text-xl font-bold text-slate-900">הרשמה</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <Input
             id="fullName"
             label="שם מלא"
             required
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            value={fullName.value}
+            error={fullName.error ?? undefined}
+            onChange={(e) => fullName.onChange(e.target.value)}
+            onBlur={fullName.onBlur}
           />
           <Input
             id="email"
             type="email"
             label="אימייל"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={email.value}
+            error={email.error ?? undefined}
+            onChange={(e) => email.onChange(e.target.value)}
             onBlur={handleEmailBlur}
             placeholder="you@example.com"
           />
@@ -150,36 +154,43 @@ export function RegisterPage() {
             type="tel"
             label="טלפון"
             required
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            value={phone.value}
+            error={phone.error ?? undefined}
+            onChange={(e) => phone.onChange(e.target.value)}
+            onBlur={phone.onBlur}
           />
           <Input
             id="age"
             type="number"
             label="גיל"
-            min={0}
-            max={120}
+            min={1}
+            max={130}
             required
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
+            value={age.value}
+            error={age.error ?? undefined}
+            onChange={(e) => age.onChange(e.target.value)}
+            onBlur={age.onBlur}
           />
           <PasswordInput
             id="password"
             label="סיסמה"
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={password.value}
+            error={password.error ?? undefined}
+            onChange={(e) => password.onChange(e.target.value)}
+            onBlur={password.onBlur}
             placeholder="••••••••"
           />
           <PasswordInput
             id="confirmPassword"
             label="אימות סיסמה"
             required
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            value={confirmPassword.value}
+            error={confirmPassword.error ?? undefined}
+            onChange={(e) => confirmPassword.onChange(e.target.value)}
+            onBlur={confirmPassword.onBlur}
             placeholder="••••••••"
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" loading={submitting} className="mt-2 w-full">
             {submitting ? 'נרשם...' : 'הרשמה'}
           </Button>

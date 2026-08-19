@@ -10,18 +10,34 @@ import { PageSkeleton } from '../components/ui/Skeleton';
 import { Card } from '../components/ui/Card';
 import { Input, PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
-import { isValidEmail } from '../utils/validation';
+import { useValidatedInput } from '../hooks/useValidatedInput';
+import { emailValidator, requiredValidator } from '../utils/validation';
+
+// Password change on this page is optional (only validated if the user
+// actually starts typing a new one), unlike registration's mandatory version.
+function optionalPasswordValidator(value: string): string | null {
+  if (!value) return null;
+  return value.length >= 6 ? null : 'הסיסמה חייבת להכיל לפחות 6 תווים';
+}
+
+function optionalConfirmPasswordValidator(getPassword: () => string) {
+  return (value: string): string | null => {
+    const pwd = getPassword();
+    if (!pwd && !value) return null;
+    return value === pwd ? null : 'הסיסמאות אינן תואמות';
+  };
+}
 
 export function ProfilePage() {
   const { profile, user, loading, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const [fullName, setFullName] = useState(profile?.full_name ?? '');
-  const [email, setEmail] = useState(profile?.email ?? '');
+  const fullName = useValidatedInput(profile?.full_name ?? '', requiredValidator('שם מלא'));
+  const email = useValidatedInput(profile?.email ?? '', emailValidator);
   const [savingDetails, setSavingDetails] = useState(false);
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const password = useValidatedInput('', optionalPasswordValidator);
+  const confirmPassword = useValidatedInput('', optionalConfirmPasswordValidator(() => password.value));
   const [savingPassword, setSavingPassword] = useState(false);
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -33,21 +49,19 @@ export function ProfilePage() {
   async function handleDetailsSubmit(e: FormEvent) {
     e.preventDefault();
 
-    if (!isValidEmail(email)) {
-      toast.error('כתובת אימייל לא תקינה');
-      return;
-    }
+    const validations = [fullName.validateNow(), email.validateNow()];
+    if (validations.some((valid) => !valid)) return;
 
     setSavingDetails(true);
     try {
-      if (email !== profile!.email) {
-        const { error: authError } = await supabase.auth.updateUser({ email });
+      if (email.value !== profile!.email) {
+        const { error: authError } = await supabase.auth.updateUser({ email: email.value });
         if (authError) throw authError;
       }
 
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ full_name: fullName, email })
+        .update({ full_name: fullName.value, email: email.value })
         .eq('id', profile!.id);
 
       if (profileError) throw profileError;
@@ -64,17 +78,15 @@ export function ProfilePage() {
   async function handlePasswordSubmit(e: FormEvent) {
     e.preventDefault();
 
-    if (password.length < 6) {
-      toast.error('הסיסמה חייבת להכיל לפחות 6 תווים');
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast.error('הסיסמאות אינן תואמות');
+    const validations = [password.validateNow(), confirmPassword.validateNow()];
+    if (validations.some((valid) => !valid)) return;
+    if (!password.value) {
+      toast.error('יש להזין סיסמה חדשה');
       return;
     }
 
     setSavingPassword(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.auth.updateUser({ password: password.value });
     setSavingPassword(false);
 
     if (error) {
@@ -82,8 +94,8 @@ export function ProfilePage() {
       return;
     }
 
-    setPassword('');
-    setConfirmPassword('');
+    password.setValue('');
+    confirmPassword.setValue('');
     toast.success('הסיסמה עודכנה בהצלחה');
   }
 
@@ -129,15 +141,25 @@ export function ProfilePage() {
       <div className="flex flex-col gap-6">
         <Card className="p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">פרטים אישיים</h2>
-          <form onSubmit={handleDetailsSubmit} className="flex flex-col gap-4">
-            <Input id="fullName" label="שם מלא" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <form onSubmit={handleDetailsSubmit} className="flex flex-col gap-4" noValidate>
+            <Input
+              id="fullName"
+              label="שם מלא"
+              required
+              value={fullName.value}
+              error={fullName.error ?? undefined}
+              onChange={(e) => fullName.onChange(e.target.value)}
+              onBlur={fullName.onBlur}
+            />
             <Input
               id="email"
               type="email"
               label="אימייל"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={email.value}
+              error={email.error ?? undefined}
+              onChange={(e) => email.onChange(e.target.value)}
+              onBlur={email.onBlur}
             />
             <Button type="submit" loading={savingDetails} className="w-full sm:w-auto">
               שמירת פרטים
@@ -147,19 +169,23 @@ export function ProfilePage() {
 
         <Card className="p-6">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">שינוי סיסמה</h2>
-          <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-4" noValidate>
             <PasswordInput
               id="newPassword"
               label="סיסמה חדשה"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={password.value}
+              error={password.error ?? undefined}
+              onChange={(e) => password.onChange(e.target.value)}
+              onBlur={password.onBlur}
               placeholder="••••••••"
             />
             <PasswordInput
               id="confirmNewPassword"
               label="אימות סיסמה חדשה"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              value={confirmPassword.value}
+              error={confirmPassword.error ?? undefined}
+              onChange={(e) => confirmPassword.onChange(e.target.value)}
+              onBlur={confirmPassword.onBlur}
               placeholder="••••••••"
             />
             <Button type="submit" loading={savingPassword} className="w-full sm:w-auto">

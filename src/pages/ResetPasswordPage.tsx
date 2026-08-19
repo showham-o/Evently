@@ -10,15 +10,16 @@ import { PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageSkeleton } from '../components/ui/Skeleton';
+import { useValidatedInput } from '../hooks/useValidatedInput';
+import { confirmPasswordValidator, passwordValidator } from '../utils/validation';
 
 export function ResetPasswordPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const password = useValidatedInput('', passwordValidator);
+  const confirmPassword = useValidatedInput('', confirmPasswordValidator(() => password.value));
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   if (loading) return <PageSkeleton />;
 
@@ -40,23 +41,16 @@ export function ResetPasswordPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
 
-    if (password.length < 6) {
-      setError('הסיסמה חייבת להכיל לפחות 6 תווים');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('הסיסמאות אינן תואמות');
-      return;
-    }
+    const validations = [password.validateNow(), confirmPassword.validateNow()];
+    if (validations.some((valid) => !valid)) return;
 
     setSubmitting(true);
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    const { error: updateError } = await supabase.auth.updateUser({ password: password.value });
     setSubmitting(false);
 
     if (updateError) {
-      setError('עדכון הסיסמה נכשל, נסו לבקש קישור חדש');
+      toast.error('עדכון הסיסמה נכשל, נסו לבקש קישור חדש');
       return;
     }
 
@@ -74,24 +68,27 @@ export function ResetPasswordPage() {
           <h1 className="text-xl font-bold text-slate-900">קביעת סיסמה חדשה</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <PasswordInput
             id="password"
             label="סיסמה חדשה"
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={password.value}
+            error={password.error ?? undefined}
+            onChange={(e) => password.onChange(e.target.value)}
+            onBlur={password.onBlur}
             placeholder="••••••••"
           />
           <PasswordInput
             id="confirmPassword"
             label="אימות סיסמה חדשה"
             required
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            value={confirmPassword.value}
+            error={confirmPassword.error ?? undefined}
+            onChange={(e) => confirmPassword.onChange(e.target.value)}
+            onBlur={confirmPassword.onBlur}
             placeholder="••••••••"
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
           <Button type="submit" loading={submitting} className="mt-2 w-full">
             {submitting ? 'מעדכן...' : 'עדכון סיסמה'}
           </Button>

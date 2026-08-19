@@ -7,17 +7,21 @@ import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { PageContainer } from '../components/layout/PageContainer';
+import { useValidatedInput } from '../hooks/useValidatedInput';
+import { emailValidator } from '../utils/validation';
 
 export function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
+  const email = useValidatedInput('', emailValidator);
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!email.validateNow()) return;
+
     setSubmitting(true);
 
-    await supabase.auth.resetPasswordForEmail(email, {
+    await supabase.auth.resetPasswordForEmail(email.value, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
 
@@ -43,14 +47,16 @@ export function ForgotPasswordPage() {
             אם קיים חשבון עם כתובת האימייל שהזנת, נשלח אליו מייל עם קישור לאיפוס הסיסמה.
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
             <Input
               id="email"
               type="email"
               label="אימייל"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={email.value}
+              error={email.error ?? undefined}
+              onChange={(e) => email.onChange(e.target.value)}
+              onBlur={email.onBlur}
               placeholder="you@example.com"
             />
             <Button type="submit" loading={submitting} className="mt-2 w-full">

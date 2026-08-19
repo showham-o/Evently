@@ -8,7 +8,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, error, id, className = '', ...rest },
+  { label, error, id, required, className = '', ...rest },
   ref,
 ) {
   return (
@@ -16,11 +16,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       {label && (
         <label htmlFor={id} className="text-sm font-medium text-slate-700">
           {label}
+          {required && (
+            <span className="text-red-600" aria-hidden="true">
+              {' '}
+              *
+            </span>
+          )}
         </label>
       )}
       <input
         ref={ref}
         id={id}
+        required={required}
         className={`rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 ${
           error ? 'border-red-400 focus:border-red-500 focus:ring-red-500/30' : ''
         } ${className}`}
@@ -37,7 +44,7 @@ interface PasswordInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>,
 }
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(function PasswordInput(
-  { label, error, id, className = '', ...rest },
+  { label, error, id, required, className = '', ...rest },
   ref,
 ) {
   const [visible, setVisible] = useState(false);
@@ -47,12 +54,19 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(fu
       {label && (
         <label htmlFor={id} className="text-sm font-medium text-slate-700">
           {label}
+          {required && (
+            <span className="text-red-600" aria-hidden="true">
+              {' '}
+              *
+            </span>
+          )}
         </label>
       )}
       <div className="relative">
         <input
           ref={ref}
           id={id}
+          required={required}
           type={visible ? 'text' : 'password'}
           className={`w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 pe-11 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 ${
             error ? 'border-red-400 focus:border-red-500 focus:ring-red-500/30' : ''

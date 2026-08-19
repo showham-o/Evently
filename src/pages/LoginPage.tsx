@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { LogIn } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { useAuth } from '../context/AuthProvider';
+import { useValidatedInput } from '../hooks/useValidatedInput';
+import { emailValidator, requiredValidator } from '../utils/validation';
 import { Card } from '../components/ui/Card';
 import { Input, PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -14,8 +16,8 @@ export function LoginPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const email = useValidatedInput('', emailValidator);
+  const password = useValidatedInput('', requiredValidator('סיסמה'));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,10 +28,16 @@ export function LoginPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const validations = [email.validateNow(), password.validateNow()];
+    if (validations.some((valid) => !valid)) return;
+
+    setSubmitting(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.value,
+      password: password.value,
+    });
 
     if (signInError) {
       setError('אימייל או סיסמה שגויים');
@@ -51,22 +59,26 @@ export function LoginPage() {
           <h1 className="text-xl font-bold text-slate-900">התחברות</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
           <Input
             id="email"
             type="email"
             label="אימייל"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={email.value}
+            error={email.error ?? undefined}
+            onChange={(e) => email.onChange(e.target.value)}
+            onBlur={email.onBlur}
             placeholder="you@example.com"
           />
           <PasswordInput
             id="password"
             label="סיסמה"
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={password.value}
+            error={password.error ?? undefined}
+            onChange={(e) => password.onChange(e.target.value)}
+            onBlur={password.onBlur}
             placeholder="••••••••"
           />
           <div className="text-end">

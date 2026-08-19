@@ -3,7 +3,8 @@ import { toast } from 'sonner';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import type { Event, EventInvitee, RsvpStatus } from '../../lib/supabase/types';
 import { isEventFull, submitGuestRsvp } from '../../utils/rsvp';
-import { isValidEmail, isValidPhone } from '../../utils/validation';
+import { ageValidator, emailValidator, phoneValidator, requiredValidator } from '../../utils/validation';
+import { useValidatedInput } from '../../hooks/useValidatedInput';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
@@ -23,32 +24,31 @@ const options: { value: RsvpStatus; label: string; icon: typeof CheckCircle2 }[]
 
 export function GuestRsvpForm({ event, approvedCount, onSubmitted }: GuestRsvpFormProps) {
   const [selected, setSelected] = useState<RsvpStatus | null>(null);
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [age, setAge] = useState('');
+  const fullName = useValidatedInput('', requiredValidator('שם מלא'));
+  const email = useValidatedInput('', emailValidator);
+  const phone = useValidatedInput('', phoneValidator);
+  const age = useValidatedInput('', ageValidator);
   const [submitting, setSubmitting] = useState(false);
 
   const full = isEventFull(event, approvedCount);
-  const canSubmit = !!selected && !!fullName && !!email && !!phone && !!age;
+  const canSubmit = !!selected && !!fullName.value && !!email.value && !!phone.value && !!age.value;
 
   async function handleSubmit() {
-    if (!canSubmit || !selected) return;
+    if (!selected) return;
 
-    if (!isValidEmail(email)) {
-      toast.error('כתובת אימייל לא תקינה');
-      return;
-    }
-    if (!isValidPhone(phone)) {
-      toast.error('מספר טלפון לא תקין');
-      return;
-    }
+    const validations = [
+      fullName.validateNow(),
+      email.validateNow(),
+      phone.validateNow(),
+      age.validateNow(),
+    ];
+    if (validations.some((valid) => !valid)) return;
 
     setSubmitting(true);
     try {
       const invitee = await submitGuestRsvp(
         event.id,
-        { fullName, email, phone, age: Number(age) },
+        { fullName: fullName.value, email: email.value, phone: phone.value, age: Number(age.value) },
         selected,
       );
       onSubmitted(invitee);
@@ -79,25 +79,46 @@ export function GuestRsvpForm({ event, approvedCount, onSubmitted }: GuestRsvpFo
       )}
 
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Input id="guestFullName" label="שם מלא" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        <Input
+          id="guestFullName"
+          label="שם מלא"
+          required
+          value={fullName.value}
+          error={fullName.error ?? undefined}
+          onChange={(e) => fullName.onChange(e.target.value)}
+          onBlur={fullName.onBlur}
+        />
         <Input
           id="guestEmail"
           type="email"
           label="אימייל"
           required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={email.value}
+          error={email.error ?? undefined}
+          onChange={(e) => email.onChange(e.target.value)}
+          onBlur={email.onBlur}
         />
-        <Input id="guestPhone" type="tel" label="טלפון" required value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <Input
+          id="guestPhone"
+          type="tel"
+          label="טלפון"
+          required
+          value={phone.value}
+          error={phone.error ?? undefined}
+          onChange={(e) => phone.onChange(e.target.value)}
+          onBlur={phone.onBlur}
+        />
         <Input
           id="guestAge"
           type="number"
-          min={0}
-          max={120}
+          min={1}
+          max={130}
           label="גיל"
           required
-          value={age}
-          onChange={(e) => setAge(e.target.value)}
+          value={age.value}
+          error={age.error ?? undefined}
+          onChange={(e) => age.onChange(e.target.value)}
+          onBlur={age.onBlur}
         />
       </div>
 
