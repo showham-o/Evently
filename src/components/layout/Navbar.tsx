@@ -8,8 +8,8 @@ export function Navbar() {
   const navigate = useNavigate();
 
   async function handleSignOut() {
-    await signOut();
     navigate('/');
+    await signOut();
   }
 
   const canManageEvents = !!profile && profile.role !== 'guest';

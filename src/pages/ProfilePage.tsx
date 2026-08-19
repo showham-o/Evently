@@ -124,8 +124,8 @@ export function ProfilePage() {
       }
 
       toast.success('החשבון נמחק בהצלחה');
-      await signOut();
       navigate('/');
+      await signOut();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'מחיקת החשבון נכשלה');
     } finally {
