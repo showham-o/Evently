@@ -12,6 +12,7 @@ import { Input, PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { useValidatedInput } from '../hooks/useValidatedInput';
 import { emailValidator, requiredValidator } from '../utils/validation';
+import { BackButton } from '../components/ui/BackButton';
 
 // Password change on this page is optional (only validated if the user
 // actually starts typing a new one), unlike registration's mandatory version.
@@ -128,6 +129,7 @@ export function ProfilePage() {
 
   return (
     <PageContainer className="max-w-2xl">
+      <BackButton className="mb-4" />
       <div className="mb-6 flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600">
           <UserRound className="h-6 w-6" />

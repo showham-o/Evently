@@ -13,6 +13,7 @@ import { EventForm } from '../../components/manager/EventForm';
 import type { EventFormValues } from '../../components/manager/EventForm';
 import { ManagerPanel } from '../../components/manager/ManagerPanel';
 import { LogisticsPanel } from '../../components/manager/LogisticsPanel';
+import { BackButton } from '../../components/ui/BackButton';
 
 export function EditEventPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -37,6 +38,7 @@ export function EditEventPage() {
   if (!event) {
     return (
       <PageContainer>
+        <BackButton className="mb-4" />
         <Card className="p-6 text-center text-slate-500">האירוע לא נמצא</Card>
       </PageContainer>
     );
@@ -47,6 +49,7 @@ export function EditEventPage() {
   if (!canManage) {
     return (
       <PageContainer>
+        <BackButton className="mb-4" />
         <Card className="p-6 text-center text-slate-500">אין לך הרשאה לערוך אירוע זה</Card>
       </PageContainer>
     );
@@ -91,6 +94,7 @@ export function EditEventPage() {
 
   return (
     <PageContainer className="max-w-2xl">
+      <BackButton className="mb-4" />
       <h1 className="mb-6 text-2xl font-bold text-slate-900">עריכת אירוע</h1>
       <div className="flex flex-col gap-6">
         <Card className="p-6">

@@ -10,6 +10,7 @@ import { EventForm } from '../../components/manager/EventForm';
 import type { EventFormValues } from '../../components/manager/EventForm';
 import { StagedLogisticsPanel } from '../../components/manager/StagedLogisticsPanel';
 import type { StagedLogisticsItem } from '../../components/manager/StagedLogisticsPanel';
+import { BackButton } from '../../components/ui/BackButton';
 
 export function CreateEventPage() {
   const { profile, refreshProfile } = useAuth();
@@ -74,6 +75,7 @@ export function CreateEventPage() {
 
   return (
     <PageContainer className="max-w-2xl">
+      <BackButton className="mb-4" />
       <h1 className="mb-6 text-2xl font-bold text-slate-900">אירוע חדש</h1>
       <div className="flex flex-col gap-6">
         <Card className="p-6">

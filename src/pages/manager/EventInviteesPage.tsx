@@ -6,6 +6,7 @@ import { PageContainer } from '../../components/layout/PageContainer';
 import { PageSkeleton } from '../../components/ui/Skeleton';
 import { Card } from '../../components/ui/Card';
 import { InviteeTable } from '../../components/manager/InviteeTable';
+import { BackButton } from '../../components/ui/BackButton';
 
 export function EventInviteesPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -18,6 +19,7 @@ export function EventInviteesPage() {
   if (!event) {
     return (
       <PageContainer>
+        <BackButton className="mb-4" />
         <Card className="p-6 text-center text-slate-500">האירוע לא נמצא</Card>
       </PageContainer>
     );
@@ -28,6 +30,7 @@ export function EventInviteesPage() {
   if (!canManage) {
     return (
       <PageContainer>
+        <BackButton className="mb-4" />
         <Card className="p-6 text-center text-slate-500">אין לך הרשאה לצפות בנרשמים לאירוע זה</Card>
       </PageContainer>
     );
@@ -35,6 +38,7 @@ export function EventInviteesPage() {
 
   return (
     <PageContainer>
+      <BackButton className="mb-4" />
       <h1 className="mb-1 text-2xl font-bold text-slate-900">נרשמים: {event.title}</h1>
       <p className="mb-6 text-slate-500">ניהול אישורי הגעה ורשימת המתנה</p>
 

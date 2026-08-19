@@ -12,6 +12,7 @@ import { RsvpForm } from '../components/events/RsvpForm';
 import { GuestRsvpForm } from '../components/events/GuestRsvpForm';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { BackButton } from '../components/ui/BackButton';
 import { formatEventDate } from '../utils/format';
 
 function LoginPromptCard() {
@@ -71,6 +72,7 @@ export function EventDetailsPage() {
   if (error || !event) {
     return (
       <PageContainer>
+        <BackButton className="mb-4" />
         <Card className="p-6 text-center text-slate-500">האירוע לא נמצא</Card>
       </PageContainer>
     );
@@ -78,6 +80,7 @@ export function EventDetailsPage() {
 
   return (
     <PageContainer className="max-w-3xl">
+      <BackButton className="mb-4" />
       <Card className="mb-6 p-6">
         <div className="mb-3 flex items-start justify-between gap-3">
           <h1 className="text-2xl font-bold text-slate-900">{event.title}</h1>
