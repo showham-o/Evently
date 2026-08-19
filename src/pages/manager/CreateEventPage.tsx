@@ -3,15 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthProvider';
 import { supabase } from '../../lib/supabase/client';
+import { addLogisticsItem } from '../../utils/logistics';
 import { PageContainer } from '../../components/layout/PageContainer';
 import { Card } from '../../components/ui/Card';
 import { EventForm } from '../../components/manager/EventForm';
 import type { EventFormValues } from '../../components/manager/EventForm';
+import { StagedLogisticsPanel } from '../../components/manager/StagedLogisticsPanel';
+import type { StagedLogisticsItem } from '../../components/manager/StagedLogisticsPanel';
 
 export function CreateEventPage() {
   const { profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [logisticsItems, setLogisticsItems] = useState<StagedLogisticsItem[]>([]);
 
   async function handleSubmit(values: EventFormValues) {
     if (!profile) return;
@@ -51,6 +55,18 @@ export function CreateEventPage() {
       }
     }
 
+    // Logistics items were staged locally (the event didn't exist yet to
+    // attach them to) - persist them now that it does.
+    if (logisticsItems.length > 0) {
+      const results = await Promise.allSettled(
+        logisticsItems.map(({ id: _id, ...item }) => addLogisticsItem(data.id, item)),
+      );
+      const failedCount = results.filter((r) => r.status === 'rejected').length;
+      if (failedCount > 0) {
+        toast.error(`${failedCount} פריטי לוגיסטיקה לא נשמרו - ניתן להוסיפם שוב בעריכת האירוע`);
+      }
+    }
+
     setSubmitting(false);
     toast.success('האירוע נוצר בהצלחה');
     navigate('/manager');
@@ -59,9 +75,13 @@ export function CreateEventPage() {
   return (
     <PageContainer className="max-w-2xl">
       <h1 className="mb-6 text-2xl font-bold text-slate-900">אירוע חדש</h1>
-      <Card className="p-6">
-        <EventForm submitting={submitting} submitLabel="יצירת אירוע" onSubmit={handleSubmit} />
-      </Card>
+      <div className="flex flex-col gap-6">
+        <Card className="p-6">
+          <EventForm submitting={submitting} submitLabel="יצירת אירוע" onSubmit={handleSubmit} />
+        </Card>
+
+        <StagedLogisticsPanel items={logisticsItems} onChange={setLogisticsItems} />
+      </div>
     </PageContainer>
   );
 }
