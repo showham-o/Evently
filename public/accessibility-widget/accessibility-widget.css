@@ -1,0 +1,405 @@
+/*!
+ * Accessibility Widget — scoped styles
+ * Israeli Web Accessibility Standard (TI 5568 / WCAG 2.1 AA)
+ *
+ * This file has two clearly separated parts:
+ *
+ *   1) WIDGET UI STYLES — everything under `.ax-widget-root`. Fully reset
+ *      via `all: initial` on the root and every descendant so the host
+ *      site's global styles (resets, `button{}` rules, utility classes,
+ *      etc.) cannot leak in, and so this file cannot leak out either.
+ *      Every property the widget needs is re-declared explicitly.
+ *
+ *   2) PAGE-WIDE EFFECT STYLES — selectors targeting `html.ax-*` classes.
+ *      These are INTENTIONALLY global: applying a font-size/contrast/etc.
+ *      accessibility preference to the *host page* is the entire purpose
+ *      of the widget. Each rule explicitly excludes the widget's own
+ *      markup (`:not(.ax-widget-root):not(.ax-widget-root *)`) so the
+ *      widget's chrome is never affected by the very effects it applies
+ *      to the rest of the page.
+ */
+
+/* =========================================================================
+   1. WIDGET UI STYLES (scoped to .ax-widget-root)
+   ========================================================================= */
+
+/*
+ * NOTE on the `:not(svg *)` exclusions below: Chrome (and other modern
+ * engines) expose SVG shape geometry - `cx`/`cy`/`r`, `d`, `x`/`y`, etc. -
+ * as real CSS properties, not just XML attributes. `all: initial` resets
+ * those too, which silently collapses every icon shape to nothing (0
+ * radius / no path) even though fill/stroke look correct in devtools -
+ * confirmed by hand while debugging a "missing icon" report. Icons don't
+ * need the same protection from the host page that text/layout elements
+ * do, so descendants of any inline <svg> are excluded from the reset and
+ * keep rendering from their normal XML attributes.
+ */
+.ax-widget-root,
+.ax-widget-root *:not(svg *),
+.ax-widget-root *:not(svg *)::before,
+.ax-widget-root *:not(svg *)::after {
+  all: initial;
+  box-sizing: border-box;
+  direction: rtl;
+  text-align: right;
+  font-family: Arial, "Segoe UI", "Helvetica Neue", Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ax-widget-root {
+  --ax-primary: #1d4ed8;
+  --ax-primary-hover: #1e40af;
+  --ax-on-primary: #ffffff;
+  --ax-bg: #ffffff;
+  --ax-text: #111827;
+  --ax-text-muted: #4b5563;
+  --ax-border: #d1d5db;
+  --ax-surface-2: #f3f4f6;
+  --ax-focus-ring: #f59e0b;
+  --ax-radius-lg: 16px;
+  --ax-radius-md: 10px;
+  --ax-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
+  --ax-z: 2147483000;
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 0;
+  height: 0;
+  z-index: var(--ax-z);
+  line-height: 1.45;
+  font-size: 16px;
+  color: var(--ax-text);
+}
+
+/* Visually-hidden but screen-reader-available text */
+.ax-widget-root .ax-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Strong, visible focus ring everywhere inside the widget */
+.ax-widget-root button:focus-visible,
+.ax-widget-root a:focus-visible,
+.ax-widget-root [tabindex]:focus-visible {
+  outline: 3px solid var(--ax-focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* ---- Floating trigger button ---- */
+.ax-widget-root .ax-trigger {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  bottom: 24px;
+  left: 24px;
+  background: var(--ax-primary);
+  color: var(--ax-on-primary);
+  border: 2px solid var(--ax-on-primary);
+  border-radius: 50%;
+  box-shadow: var(--ax-shadow);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.ax-widget-root .ax-trigger:hover {
+  background: var(--ax-primary-hover);
+}
+
+.ax-widget-root .ax-trigger:active,
+.ax-widget-root .ax-trigger.ax-dragging {
+  cursor: grabbing;
+  transform: scale(1.04);
+}
+
+.ax-widget-root .ax-trigger svg {
+  display: block;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+}
+
+/* ---- Panel ---- */
+.ax-widget-root .ax-panel {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  width: min(340px, calc(100vw - 24px));
+  max-height: min(560px, calc(100vh - 24px));
+  background: var(--ax-bg);
+  border: 1px solid var(--ax-border);
+  border-radius: var(--ax-radius-lg);
+  box-shadow: var(--ax-shadow);
+  overflow: hidden;
+}
+
+.ax-widget-root .ax-panel[hidden] {
+  display: none;
+}
+
+.ax-widget-root .ax-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--ax-primary);
+  color: var(--ax-on-primary);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.ax-widget-root .ax-panel-header.ax-dragging {
+  cursor: grabbing;
+}
+
+.ax-widget-root .ax-panel-title {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ax-on-primary);
+}
+
+.ax-widget-root .ax-panel-hint {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ax-on-primary);
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+.ax-widget-root .ax-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--ax-on-primary);
+}
+
+.ax-widget-root .ax-close-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.ax-widget-root .ax-close-btn svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+.ax-widget-root .ax-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.ax-widget-root .ax-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ax-widget-root .ax-control-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ax-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.ax-widget-root .ax-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ax-widget-root .ax-btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ax-widget-root .ax-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 10px;
+  background: var(--ax-surface-2);
+  color: var(--ax-text);
+  border: 1.5px solid var(--ax-border);
+  border-radius: var(--ax-radius-md);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.ax-widget-root .ax-btn:hover {
+  background: #e5e7eb;
+}
+
+.ax-widget-root .ax-btn[aria-pressed="true"] {
+  background: var(--ax-primary);
+  border-color: var(--ax-primary);
+  color: var(--ax-on-primary);
+}
+
+.ax-widget-root .ax-btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ax-widget-root .ax-fontsize-btn {
+  flex: 1;
+  font-size: 16px;
+}
+
+.ax-widget-root .ax-fontsize-level {
+  flex-shrink: 0;
+  min-width: 74px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ax-text-muted);
+}
+
+.ax-widget-root .ax-reset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px;
+  background: #fff;
+  color: #b91c1c;
+  border: 1.5px solid #b91c1c;
+  border-radius: var(--ax-radius-md);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.ax-widget-root .ax-reset-btn:hover {
+  background: #fef2f2;
+}
+
+.ax-widget-root .ax-footer-note {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ax-text-muted);
+  text-align: center;
+}
+
+/* =========================================================================
+   2. PAGE-WIDE ACCESSIBILITY EFFECTS
+   Applied via classes on <html>. Every selector below deliberately
+   excludes the widget's own DOM so the widget stays legible regardless
+   of which mode is active.
+   ========================================================================= */
+
+/* ---- Font size (root class modifier, smooth transition) ---- */
+html {
+  transition: font-size 0.2s ease;
+}
+html.ax-font-size-1 { font-size: 112.5%; }
+html.ax-font-size-2 { font-size: 125%; }
+html.ax-font-size-3 { font-size: 137.5%; }
+html.ax-font-size-4 { font-size: 150%; }
+
+/* ---- Readable font ---- */
+html.ax-readable-font body,
+html.ax-readable-font
+  body *:not(.ax-widget-root):not(.ax-widget-root *) {
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+}
+
+/* ---- Highlight links ---- */
+html.ax-highlight-links
+  a[href]:not(.ax-widget-root):not(.ax-widget-root *) {
+  outline: 3px solid #ff6a00 !important;
+  outline-offset: 2px !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 2px !important;
+  background-color: rgba(255, 214, 0, 0.25) !important;
+}
+
+/* ---- Stop animations / marquees ---- */
+html.ax-stop-animations
+  *:not(.ax-widget-root):not(.ax-widget-root *) {
+  animation-play-state: paused !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* ---- Contrast: dark ---- */
+html.ax-contrast-dark body,
+html.ax-contrast-dark
+  body
+  *:not(.ax-widget-root):not(.ax-widget-root *) {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+html.ax-contrast-dark
+  a[href]:not(.ax-widget-root):not(.ax-widget-root *) {
+  color: #ffe000 !important;
+}
+html.ax-contrast-dark
+  img:not(.ax-widget-root *),
+html.ax-contrast-dark
+  video:not(.ax-widget-root *) {
+  filter: brightness(0.85) contrast(1.1);
+}
+
+/* ---- Contrast: light (forced true black-on-white) ---- */
+html.ax-contrast-light body,
+html.ax-contrast-light
+  body
+  *:not(.ax-widget-root):not(.ax-widget-root *) {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+html.ax-contrast-light
+  a[href]:not(.ax-widget-root):not(.ax-widget-root *) {
+  color: #0000ee !important;
+}
+
+/* ---- Contrast: grayscale / monochrome ---- */
+html.ax-contrast-grayscale
+  *:not(.ax-widget-root):not(.ax-widget-root *) {
+  filter: grayscale(100%) !important;
+}
+
+@media (max-width: 420px) {
+  .ax-widget-root .ax-trigger {
+    width: 50px;
+    height: 50px;
+  }
+}

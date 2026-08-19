@@ -28,6 +28,14 @@ export function requiredValidator(fieldLabel: string) {
   return (value: string): string | null => (value.trim() ? null : `שדה ${fieldLabel} הוא שדה חובה`);
 }
 
+export const FULL_NAME_MAX_LENGTH = 15;
+
+export function fullNameValidator(value: string): string | null {
+  if (!value.trim()) return 'שדה שם מלא הוא שדה חובה';
+  if (value.trim().length > FULL_NAME_MAX_LENGTH) return `שם מלא יכול להכיל עד ${FULL_NAME_MAX_LENGTH} תווים`;
+  return null;
+}
+
 export function emailValidator(value: string): string | null {
   if (!value.trim()) return 'שדה אימייל הוא שדה חובה';
   return isValidEmail(value) ? null : 'כתובת אימייל לא תקינה';

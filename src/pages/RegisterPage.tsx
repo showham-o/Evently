@@ -12,9 +12,10 @@ import {
   ageValidator,
   confirmPasswordValidator,
   emailValidator,
+  FULL_NAME_MAX_LENGTH,
+  fullNameValidator,
   passwordValidator,
   phoneValidator,
-  requiredValidator,
 } from '../utils/validation';
 import { Card } from '../components/ui/Card';
 import { Input, PasswordInput } from '../components/ui/Input';
@@ -25,7 +26,7 @@ export function RegisterPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
-  const fullName = useValidatedInput('', requiredValidator('שם מלא'));
+  const fullName = useValidatedInput('', fullNameValidator);
   const email = useValidatedInput('', emailValidator);
   const phone = useValidatedInput('', phoneValidator);
   const age = useValidatedInput('', ageValidator);
@@ -133,6 +134,7 @@ export function RegisterPage() {
             id="fullName"
             label="שם מלא"
             required
+            maxLength={FULL_NAME_MAX_LENGTH}
             value={fullName.value}
             error={fullName.error ?? undefined}
             onChange={(e) => fullName.onChange(e.target.value)}

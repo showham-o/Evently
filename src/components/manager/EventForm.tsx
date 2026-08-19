@@ -166,6 +166,7 @@ export function EventForm({
         id="title"
         label="שם האירוע"
         required
+        maxLength={30}
         value={values.title}
         onChange={(e) => update('title', e.target.value)}
       />

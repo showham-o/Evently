@@ -63,9 +63,10 @@ export function Navbar() {
               <Link
                 to="/profile"
                 className="flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+                title={profile?.full_name ?? undefined}
               >
                 <UserIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">הפרופיל שלי</span>
+                <span className="hidden max-w-[140px] truncate sm:inline">{profile?.full_name || 'הפרופיל שלי'}</span>
               </Link>
               <button
                 onClick={handleSignOut}

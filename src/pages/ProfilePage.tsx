@@ -11,7 +11,7 @@ import { Card } from '../components/ui/Card';
 import { Input, PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { useValidatedInput } from '../hooks/useValidatedInput';
-import { emailValidator, requiredValidator } from '../utils/validation';
+import { emailValidator, FULL_NAME_MAX_LENGTH, fullNameValidator } from '../utils/validation';
 import { BackButton } from '../components/ui/BackButton';
 
 // Password change on this page is optional (only validated if the user
@@ -33,7 +33,7 @@ export function ProfilePage() {
   const { profile, user, loading, refreshProfile, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const fullName = useValidatedInput(profile?.full_name ?? '', requiredValidator('שם מלא'));
+  const fullName = useValidatedInput(profile?.full_name ?? '', fullNameValidator);
   const email = useValidatedInput(profile?.email ?? '', emailValidator);
   const [savingDetails, setSavingDetails] = useState(false);
 
@@ -154,6 +154,7 @@ export function ProfilePage() {
               id="fullName"
               label="שם מלא"
               required
+              maxLength={FULL_NAME_MAX_LENGTH}
               value={fullName.value}
               error={fullName.error ?? undefined}
               onChange={(e) => fullName.onChange(e.target.value)}
