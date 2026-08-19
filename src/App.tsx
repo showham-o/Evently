@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { EventDetailsPage } from './pages/EventDetailsPage';
+import { MyEventsPage } from './pages/MyEventsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ManagerDashboardPage } from './pages/manager/ManagerDashboardPage';
 import { CreateEventPage } from './pages/manager/CreateEventPage';
@@ -33,6 +34,15 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/my-events"
+          element={
+            <ProtectedRoute>
+              <MyEventsPage />
             </ProtectedRoute>
           }
         />

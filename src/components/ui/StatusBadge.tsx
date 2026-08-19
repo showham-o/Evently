@@ -12,6 +12,11 @@ const statusConfig: Record<string, { label: string; tone: BadgeTone }> = {
   // event status
   draft: { label: 'טיוטה', tone: 'slate' },
   published: { label: 'פורסם', tone: 'green' },
+  // NOTE: 'cancelled' is also a valid RegistrationStatus value (event_invitees.registration_status).
+  // Both dimensions share the label 'בוטל', so no duplicate key is needed. Event-status cancelled
+  // stays red by default here. A caller rendering a cancelled *registration* (user withdrew their
+  // own RSVP, not an alarm state) should override the tone explicitly, e.g.
+  // <StatusBadge status="cancelled" tone="slate" /> — the label still resolves from this entry.
   cancelled: { label: 'בוטל', tone: 'red' },
   completed: { label: 'הסתיים', tone: 'slate' },
   full: { label: 'מלא', tone: 'red' },
