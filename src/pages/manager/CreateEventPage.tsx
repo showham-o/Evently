@@ -12,6 +12,7 @@ import type { EventFormValues } from '../../components/manager/EventForm';
 import { StagedLogisticsPanel } from '../../components/manager/StagedLogisticsPanel';
 import type { StagedLogisticsItem } from '../../components/manager/StagedLogisticsPanel';
 import { BackButton } from '../../components/ui/BackButton';
+import { Seo } from '../../components/seo/Seo';
 
 export function CreateEventPage() {
   const { profile, refreshProfile } = useAuth();
@@ -108,6 +109,7 @@ export function CreateEventPage() {
 
   return (
     <PageContainer className="max-w-2xl">
+      <Seo title="אירוע חדש | Evently" description="יצירת אירוע חדש." path="/manager/events/new" noindex />
       <BackButton className="mb-4" isDirty={formDirty} />
       <h1 className="mb-6 text-2xl font-bold text-slate-900">אירוע חדש</h1>
       <div className="flex flex-col gap-6">

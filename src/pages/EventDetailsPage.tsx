@@ -24,7 +24,34 @@ import { AttendeeList } from '../components/events/AttendeeList';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { BackButton } from '../components/ui/BackButton';
+import { Seo, getSiteUrl } from '../components/seo/Seo';
 import { formatEventDate, formatShortDateTime } from '../utils/format';
+
+const EVENT_DESCRIPTION_MAX_LENGTH = 160;
+
+function buildEventJsonLd(event: {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  event_date: string;
+  status: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: event.title,
+    startDate: event.event_date,
+    eventStatus:
+      event.status === 'cancelled' ? 'https://schema.org/EventCancelled' : 'https://schema.org/EventScheduled',
+    eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+    description: event.description || event.title,
+    location: event.location
+      ? { '@type': 'Place', name: event.location }
+      : { '@type': 'VirtualLocation', url: `${getSiteUrl()}/e/${event.id}` },
+    url: `${getSiteUrl()}/e/${event.id}`,
+  };
+}
 
 function LoginPromptCard() {
   return (
@@ -146,6 +173,12 @@ export function EventDetailsPage() {
   if (error || !event || (event.status === 'cancelled' && !isManager)) {
     return (
       <PageContainer>
+        <Seo
+          title="האירוע לא נמצא | Evently"
+          description="האירוע המבוקש אינו קיים או שאינו זמין עוד."
+          path={`/e/${eventId ?? 'not-found'}`}
+          noindex
+        />
         <BackButton className="mb-4" />
         <Card className="p-6 text-center text-slate-500">האירוע לא נמצא</Card>
       </PageContainer>
@@ -160,8 +193,21 @@ export function EventDetailsPage() {
     (sibling) => sibling.id !== event.id && (sibling.status !== 'cancelled' || isManager),
   );
 
+  const seoDescription = event.description
+    ? event.description.length > EVENT_DESCRIPTION_MAX_LENGTH
+      ? `${event.description.slice(0, EVENT_DESCRIPTION_MAX_LENGTH - 1)}…`
+      : event.description
+    : `${event.title} - ${formatEventDate(event.event_date)}${event.location ? ` ב${event.location}` : ''}`;
+
   return (
     <PageContainer className="max-w-3xl">
+      <Seo
+        title={`${event.title} | Evently`}
+        description={seoDescription}
+        path={`/e/${event.id}`}
+        noindex={event.status !== 'published'}
+        jsonLd={buildEventJsonLd(event)}
+      />
       <BackButton className="mb-4" />
       <Card className="mb-6 p-6">
         <div className="mb-3 flex items-start justify-between gap-3">

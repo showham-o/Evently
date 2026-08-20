@@ -7,6 +7,7 @@ import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { PageContainer } from '../components/layout/PageContainer';
+import { Seo } from '../components/seo/Seo';
 import { useValidatedInput } from '../hooks/useValidatedInput';
 import { emailValidator } from '../utils/validation';
 
@@ -33,6 +34,7 @@ export function ForgotPasswordPage() {
 
   return (
     <PageContainer className="flex items-center justify-center">
+      <Seo title="שחזור סיסמה | Evently" description="בקשת קישור לאיפוס סיסמה." path="/forgot-password" noindex />
       <Card className="w-full max-w-md p-8">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600">

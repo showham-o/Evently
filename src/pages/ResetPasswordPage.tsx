@@ -10,6 +10,7 @@ import { PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageSkeleton } from '../components/ui/Skeleton';
+import { Seo } from '../components/seo/Seo';
 import { useValidatedInput } from '../hooks/useValidatedInput';
 import { confirmPasswordValidator, passwordValidator } from '../utils/validation';
 
@@ -26,6 +27,7 @@ export function ResetPasswordPage() {
   if (!user) {
     return (
       <PageContainer className="flex items-center justify-center">
+        <Seo title="קישור לא תקף | Evently" description="קישור איפוס הסיסמה אינו תקף." path="/reset-password" noindex />
         <Card className="w-full max-w-md p-8 text-center">
           <h1 className="mb-2 text-xl font-bold text-slate-900">הקישור פג תוקף</h1>
           <p className="mb-6 text-sm text-slate-500">
@@ -60,6 +62,7 @@ export function ResetPasswordPage() {
 
   return (
     <PageContainer className="flex items-center justify-center">
+      <Seo title="איפוס סיסמה | Evently" description="קביעת סיסמה חדשה לחשבון Evently שלך." path="/reset-password" noindex />
       <Card className="w-full max-w-md p-8">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600">

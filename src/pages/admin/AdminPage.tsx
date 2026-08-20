@@ -9,6 +9,7 @@ import { PageContainer } from '../../components/layout/PageContainer';
 import { PageSkeleton } from '../../components/ui/Skeleton';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/Button';
+import { Seo } from '../../components/seo/Seo';
 
 export function AdminPage() {
   const { profile: currentAdmin } = useAuth();
@@ -103,6 +104,7 @@ export function AdminPage() {
 
   return (
     <PageContainer>
+      <Seo title="ניהול מערכת | Evently" description="ניהול משתמשים והרשאות." path="/admin" noindex />
       <h1 className="mb-1 flex items-center gap-2 text-2xl font-bold text-slate-900">
         <ShieldCheck className="h-6 w-6 text-primary-600" />
         ניהול מערכת

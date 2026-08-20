@@ -19,6 +19,7 @@ import { EventCard } from '../../components/events/EventCard';
 import { EventCardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Button } from '../../components/ui/Button';
+import { Seo } from '../../components/seo/Seo';
 
 type EventListItem = EventWithCreator & { occurrenceCount: number };
 
@@ -207,6 +208,7 @@ export function ManagerDashboardPage() {
 
   return (
     <PageContainer>
+      <Seo title="ניהול אירועים | Evently" description="האירועים שאתם מנהלים או שותפים בניהולם." path="/manager" noindex />
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">

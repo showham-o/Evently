@@ -14,6 +14,7 @@ import type { EventFormValues } from '../../components/manager/EventForm';
 import { ManagerPanel } from '../../components/manager/ManagerPanel';
 import { LogisticsPanel } from '../../components/manager/LogisticsPanel';
 import { BackButton } from '../../components/ui/BackButton';
+import { Seo } from '../../components/seo/Seo';
 
 export function EditEventPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -97,6 +98,7 @@ export function EditEventPage() {
 
   return (
     <PageContainer className="max-w-2xl">
+      <Seo title={`עריכת ${event.title} | Evently`} description="עריכת פרטי האירוע." path={`/manager/events/${event.id}/edit`} noindex />
       <BackButton className="mb-4" isDirty={formDirty} />
       <h1 className="mb-6 text-2xl font-bold text-slate-900">עריכת אירוע</h1>
       <div className="flex flex-col gap-6">

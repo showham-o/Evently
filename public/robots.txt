@@ -1,0 +1,25 @@
+# Evently - robots.txt
+#
+# Most routes are authenticated app functionality (profile, manager
+# dashboard, admin, event editing) rather than content, so they're excluded
+# from crawling entirely below. Public-but-non-indexable pages (login,
+# register, password reset) are deliberately NOT listed here - they rely on
+# the noindex meta tag instead (see index.html), since combining Disallow
+# with noindex on the same page is a conflicting signal: a disallowed page
+# can't be crawled, so the crawler never even sees its noindex tag, and a
+# disallowed URL can still surface in search results as a bare link with no
+# snippet. noindex alone is the correct signal for a page that's fine to
+# crawl but shouldn't be indexed.
+#
+# TODO: replace REPLACE_WITH_YOUR_DOMAIN below once a production domain is
+# chosen (see VITE_SITE_URL in .env.example).
+
+User-agent: *
+Allow: /
+Allow: /e/
+Disallow: /profile
+Disallow: /my-events
+Disallow: /manager
+Disallow: /admin
+
+Sitemap: https://REPLACE_WITH_YOUR_DOMAIN/sitemap.xml

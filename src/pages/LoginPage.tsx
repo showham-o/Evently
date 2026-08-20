@@ -11,6 +11,7 @@ import { Card } from '../components/ui/Card';
 import { Input, PasswordInput } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { PageContainer } from '../components/layout/PageContainer';
+import { Seo } from '../components/seo/Seo';
 
 export function LoginPage() {
   const { user, loading } = useAuth();
@@ -51,6 +52,7 @@ export function LoginPage() {
 
   return (
     <PageContainer className="flex items-center justify-center">
+      <Seo title="התחברות | Evently" description="התחברות לחשבון Evently שלך." path="/login" noindex />
       <Card className="w-full max-w-md p-8">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600">

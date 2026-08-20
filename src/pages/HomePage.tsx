@@ -7,6 +7,10 @@ import { PageContainer } from '../components/layout/PageContainer';
 import { EventCard } from '../components/events/EventCard';
 import { EventCardSkeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Seo, getSiteUrl } from '../components/seo/Seo';
+
+const HOME_TITLE = 'Evently - אירועים קרובים';
+const HOME_DESCRIPTION = 'גלו אירועים קרובים ואשרו הגעה במקום אחד. פלטפורמה לניהול אירועים ואישורי הגעה.';
 
 type EventListItem = EventWithCreator & { occurrenceCount: number };
 
@@ -58,6 +62,18 @@ export function HomePage() {
 
   return (
     <PageContainer>
+      <Seo
+        title={HOME_TITLE}
+        description={HOME_DESCRIPTION}
+        path="/"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          name: HOME_TITLE,
+          description: HOME_DESCRIPTION,
+          url: `${getSiteUrl()}/`,
+        }}
+      />
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">אירועים קרובים</h1>
         <p className="mt-1 text-slate-500">מצאו אירועים ואשרו הגעה במקום אחד</p>
