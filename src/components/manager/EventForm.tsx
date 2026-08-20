@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
-import type { Event, EventStatus, RegistrationMode } from '../../lib/supabase/types';
+import type { AttendeeListVisibility, Event, EventStatus, RegistrationMode } from '../../lib/supabase/types';
 import type { RecurrenceFrequency } from '../../utils/recurrence';
 import { FREQUENCY_LABELS, isEndDateRequired, maxRecurrenceEndDate, parseLocalDate, WEEKDAY_LABELS } from '../../utils/recurrence';
 import { Input } from '../ui/Input';
@@ -27,6 +27,8 @@ export interface EventFormValues {
   minimum_age: string;
   status: EventStatus;
   registration_mode: RegistrationMode;
+  hide_attendee_count: boolean;
+  attendee_list_visibility: AttendeeListVisibility;
   recurrence: RecurrenceValue;
 }
 
@@ -53,6 +55,8 @@ function buildInitialValues(initial?: Event): EventFormValues {
     minimum_age: initial?.minimum_age != null ? String(initial.minimum_age) : '',
     status: initial?.status ?? 'draft',
     registration_mode: initial?.registration_mode ?? 'registered_only',
+    hide_attendee_count: initial?.hide_attendee_count ?? false,
+    attendee_list_visibility: initial?.attendee_list_visibility ?? 'managers',
     recurrence: { type: 'once' },
   };
 }
@@ -74,6 +78,14 @@ const statusOptions: { value: EventStatus; label: string }[] = [
 const registrationModeOptions: { value: RegistrationMode; label: string }[] = [
   { value: 'registered_only', label: 'רק משתמשים רשומים' },
   { value: 'anyone', label: 'כל אחד, כולל משתמשים לא רשומים' },
+  { value: 'invite_only', label: 'רק מוזמנים יכולים להירשם' },
+];
+
+const attendeeListVisibilityOptions: { value: AttendeeListVisibility; label: string }[] = [
+  { value: 'managers', label: 'מנהלי האירוע בלבד' },
+  { value: 'managers_and_invitees', label: 'מנהלים ומי שהוזמן לאירוע' },
+  { value: 'logged_in', label: 'כל משתמש מחובר' },
+  { value: 'public', label: 'כולם, כולל מי שלא מחובר' },
 ];
 
 const frequencyOptions: RecurrenceFrequency[] = ['daily', 'weekly', 'monthly', 'yearly'];
@@ -319,6 +331,38 @@ export function EventForm({
           value={values.minimum_age}
           onChange={(e) => update('minimum_age', e.target.value)}
         />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="hide_attendee_count" className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <input
+            id="hide_attendee_count"
+            type="checkbox"
+            checked={values.hide_attendee_count}
+            onChange={(e) => update('hide_attendee_count', e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-2 focus:ring-primary-500/30"
+          />
+          הסתרת מספר הנרשמים ממבקרים
+        </label>
+        <p className="text-sm text-slate-500">מנהלי האירוע תמיד יראו את המספר המלא</p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="attendee_list_visibility" className="text-sm font-medium text-slate-700">
+          מי רשאי לראות מי נרשם לאירוע
+        </label>
+        <select
+          id="attendee_list_visibility"
+          value={values.attendee_list_visibility}
+          onChange={(e) => update('attendee_list_visibility', e.target.value as AttendeeListVisibility)}
+          className="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+        >
+          {attendeeListVisibilityOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="flex flex-col gap-1.5">

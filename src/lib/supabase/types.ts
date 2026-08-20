@@ -13,7 +13,9 @@ export interface Profile {
 
 export type EventStatus = 'draft' | 'published' | 'cancelled' | 'completed';
 
-export type RegistrationMode = 'registered_only' | 'anyone';
+export type RegistrationMode = 'registered_only' | 'anyone' | 'invite_only';
+
+export type AttendeeListVisibility = 'managers' | 'managers_and_invitees' | 'logged_in' | 'public';
 
 export interface Event {
   id: string;
@@ -27,6 +29,8 @@ export interface Event {
   minimum_age: number | null;
   manager_ids: string[];
   registration_mode: RegistrationMode;
+  hide_attendee_count: boolean;
+  attendee_list_visibility: AttendeeListVisibility;
   recurrence_label: string | null;
   recurrence_group_id: string | null;
   created_at?: string;
@@ -61,6 +65,17 @@ export interface EventInvitee {
 
 export interface EventInviteeWithProfile extends EventInvitee {
   profile: Profile | null;
+}
+
+/** Row shape of the `event_attendee_summary` view - name+status only, never
+ * email/phone/age. Visibility is pre-filtered server-side per the event's
+ * attendee_list_visibility setting, so any row returned to the client is
+ * already safe to display as-is. */
+export interface EventAttendeeSummary {
+  event_id: string;
+  full_name: string | null;
+  rsvp_status: RsvpStatus;
+  registration_status: RegistrationStatus;
 }
 
 export type LogisticsStatus = 'pending' | 'ordered' | 'received' | 'cancelled';

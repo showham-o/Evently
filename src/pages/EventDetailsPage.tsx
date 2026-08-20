@@ -1,19 +1,30 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CalendarDays, Lock, MapPin, Repeat, User as UserIcon, Users } from 'lucide-react';
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
+  Lock,
+  MapPin,
+  Repeat,
+  User as UserIcon,
+  Users,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthProvider';
 import { useEvent } from '../hooks/useEvent';
 import { getMyInvitee } from '../utils/rsvp';
-import type { EventInvitee } from '../lib/supabase/types';
+import { supabase } from '../lib/supabase/client';
+import type { Event, EventInvitee } from '../lib/supabase/types';
 import { PageContainer } from '../components/layout/PageContainer';
 import { PageSkeleton } from '../components/ui/Skeleton';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { RsvpForm } from '../components/events/RsvpForm';
 import { GuestRsvpForm } from '../components/events/GuestRsvpForm';
+import { AttendeeList } from '../components/events/AttendeeList';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { BackButton } from '../components/ui/BackButton';
-import { formatEventDate } from '../utils/format';
+import { formatEventDate, formatShortDateTime } from '../utils/format';
 
 function LoginPromptCard() {
   return (
@@ -35,6 +46,35 @@ function LoginPromptCard() {
   );
 }
 
+/** Shown for `invite_only` events instead of the guest/RSVP form when the
+ * viewer either isn't logged in, or is logged in but has no invitee row
+ * (nobody added them). Logged-out viewers still get a login link, since an
+ * invited registered user should be able to log in and respond - just no
+ * registration/guest-RSVP offer, since that wouldn't help someone who
+ * wasn't pre-invited. */
+function InviteOnlyCard({ showLogin }: { showLogin: boolean }) {
+  return (
+    <Card className="p-6 text-center">
+      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+        <Lock className="h-6 w-6" />
+      </div>
+      <h3 className={showLogin ? 'mb-1 text-lg font-semibold text-slate-900' : 'text-lg font-semibold text-slate-900'}>
+        {showLogin ? 'אירוע זה פתוח למוזמנים בלבד' : 'לא הוזמנת לאירוע זה'}
+      </h3>
+      {showLogin && (
+        <>
+          <p className="mb-5 text-sm text-slate-500">אם קיבלת הזמנה לאירוע זה, יש להתחבר לחשבונך</p>
+          <div className="flex justify-center gap-3">
+            <Link to="/login">
+              <Button variant="outline">התחברות</Button>
+            </Link>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
 export function EventDetailsPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const { user, profile, loading: authLoading } = useAuth();
@@ -42,6 +82,8 @@ export function EventDetailsPage() {
 
   const [myInvitee, setMyInvitee] = useState<EventInvitee | null>(null);
   const [inviteeLoading, setInviteeLoading] = useState(true);
+  const [seriesSiblings, setSeriesSiblings] = useState<Event[]>([]);
+  const [seriesExpanded, setSeriesExpanded] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -65,11 +107,43 @@ export function EventDetailsPage() {
     };
   }, [eventId, profile]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadSeriesSiblings() {
+      if (!event?.recurrence_group_id) {
+        setSeriesSiblings([]);
+        return;
+      }
+      const { data, error: siblingsError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('recurrence_group_id', event.recurrence_group_id)
+        .order('event_date', { ascending: true });
+
+      if (mounted && !siblingsError && data) {
+        setSeriesSiblings(data as Event[]);
+      }
+    }
+
+    loadSeriesSiblings();
+    return () => {
+      mounted = false;
+    };
+  }, [event?.recurrence_group_id]);
+
   // Auth state and event data can resolve independently - only render once both are settled,
   // so a logged-in user never sees a flash of the login prompt.
   if (authLoading || eventLoading) return <PageSkeleton />;
 
-  if (error || !event) {
+  const isManager = !!event && (profile?.role === 'super_admin' || event.manager_ids.includes(profile?.id ?? ''));
+
+  // Cancelled events are visible only to super_admin and the event's own
+  // managers (creator/co-managers) - everyone else, including someone who
+  // already registered, is shown the same "not found" treatment as a
+  // genuinely missing event, so a stale link doesn't leak that a cancelled
+  // event still exists.
+  if (error || !event || (event.status === 'cancelled' && !isManager)) {
     return (
       <PageContainer>
         <BackButton className="mb-4" />
@@ -77,6 +151,14 @@ export function EventDetailsPage() {
       </PageContainer>
     );
   }
+
+  const canSeeCount = !event.hide_attendee_count || isManager;
+  // Same cancelled-visibility rule applied to sibling occurrences, so a
+  // non-manager never sees a link to a cancelled occurrence they can't
+  // actually open.
+  const otherOccurrences = seriesSiblings.filter(
+    (sibling) => sibling.id !== event.id && (sibling.status !== 'cancelled' || isManager),
+  );
 
   return (
     <PageContainer className="max-w-3xl">
@@ -110,23 +192,70 @@ export function EventDetailsPage() {
             <UserIcon className="h-4 w-4 shrink-0" />
             {event.creator ? `נוצר על ידי ${event.creator.full_name}` : 'נוצר על ידי משתמש שאינו זמין יותר'}
           </div>
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 shrink-0" />
-            {!!event.max_capacity && event.max_capacity > 0 ? (
-              <span>
-                <span dir="ltr" className="inline-block">
-                  {approvedCount} / {event.max_capacity}
-                </span>{' '}
-                נרשמים מאושרים
-              </span>
-            ) : (
-              <span>{approvedCount} נרשמים מאושרים</span>
-            )}
-          </div>
+          {canSeeCount && (
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 shrink-0" />
+              {!!event.max_capacity && event.max_capacity > 0 ? (
+                <span>
+                  <span dir="ltr" className="inline-block">
+                    {approvedCount} / {event.max_capacity}
+                  </span>{' '}
+                  נרשמים מאושרים
+                </span>
+              ) : (
+                <span>{approvedCount} נרשמים מאושרים</span>
+              )}
+            </div>
+          )}
         </div>
       </Card>
 
-      {!user ? (
+      {otherOccurrences.length > 0 && (
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            icon={seriesExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            onClick={() => setSeriesExpanded((current) => !current)}
+            className="!px-2.5 !py-1.5 text-slate-500"
+          >
+            {seriesExpanded ? 'הסתרת מופעים נוספים' : `הצגת ${otherOccurrences.length} מופעים נוספים בסדרה`}
+          </Button>
+          {seriesExpanded && (
+            <div className="mt-2 flex flex-col gap-1 rounded-xl border border-slate-200 p-2">
+              {otherOccurrences.map((sibling) => (
+                <Link
+                  key={sibling.id}
+                  to={`/e/${sibling.id}`}
+                  className="rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                >
+                  {formatShortDateTime(sibling.event_date)}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {event.registration_mode === 'invite_only' ? (
+        !user ? (
+          <InviteOnlyCard showLogin />
+        ) : !profile || inviteeLoading ? (
+          <PageSkeleton />
+        ) : !myInvitee ? (
+          <InviteOnlyCard showLogin={false} />
+        ) : (
+          <RsvpForm
+            event={event}
+            profile={profile}
+            approvedCount={approvedCount}
+            existingInvitee={myInvitee}
+            onSubmitted={(invitee) => {
+              setMyInvitee(invitee);
+              refetch();
+            }}
+          />
+        )
+      ) : !user ? (
         event.registration_mode === 'anyone' ? (
           <div className="flex flex-col gap-4">
             <Card className="flex flex-col items-center justify-between gap-3 p-4 sm:flex-row">
@@ -159,6 +288,8 @@ export function EventDetailsPage() {
           }}
         />
       )}
+
+      <AttendeeList eventId={event.id} />
     </PageContainer>
   );
 }

@@ -6,9 +6,7 @@ import {
   ChevronUp,
   LayoutDashboard,
   PencilLine,
-  Repeat,
   Trash2,
-  User as UserIcon,
   Users as UsersIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,12 +15,10 @@ import { supabase } from '../../lib/supabase/client';
 import type { EventWithCreator } from '../../lib/supabase/types';
 import { groupEventsBySeries } from '../../utils/recurrence';
 import { PageContainer } from '../../components/layout/PageContainer';
+import { EventCard } from '../../components/events/EventCard';
 import { EventCardSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
-import { formatShortDateTime } from '../../utils/format';
 
 type EventListItem = EventWithCreator & { occurrenceCount: number };
 
@@ -33,6 +29,7 @@ function seriesKey(event: EventWithCreator): string {
 export function ManagerDashboardPage() {
   const { profile } = useAuth();
   const [allEvents, setAllEvents] = useState<EventWithCreator[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -49,6 +46,22 @@ export function ManagerDashboardPage() {
     const all = (data ?? []) as unknown as EventWithCreator[];
     const mine = profile.role === 'super_admin' ? all : all.filter((event) => event.manager_ids.includes(profile.id));
     setAllEvents(mine);
+
+    // Managers always see the real attendee count (unlike hide_attendee_count,
+    // which only affects non-manager viewers) - mirrors HomePage's fetch.
+    const countsResult: Record<string, number> = {};
+    await Promise.all(
+      mine.map(async (event) => {
+        const { count } = await supabase
+          .from('event_invitees')
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', event.id)
+          .eq('rsvp_status', 'attending')
+          .eq('registration_status', 'approved');
+        countsResult[event.id] = count ?? 0;
+      }),
+    );
+    setCounts(countsResult);
     setLoading(false);
   }
 
@@ -93,23 +106,10 @@ export function ManagerDashboardPage() {
     else eventsBySeriesKey.set(key, [event]);
   }
 
-  function renderEventCard(event: EventWithCreator, options?: { compact?: boolean }) {
-    return (
-      <Card key={event.id} className={options?.compact ? 'flex flex-col gap-2.5 p-4' : 'flex flex-col gap-3 p-5'}>
-        <div className="flex items-start justify-between gap-2">
-          <h3 className={options?.compact ? 'text-sm font-semibold text-slate-900' : 'font-semibold text-slate-900'}>
-            {event.title}
-          </h3>
-          <StatusBadge status={event.status} />
-        </div>
-        <p className="text-sm text-slate-500">{formatShortDateTime(event.event_date)}</p>
-        {!options?.compact && event.creator && (
-          <p className="flex items-center gap-1.5 text-sm text-slate-500">
-            <UserIcon className="h-4 w-4 shrink-0" />
-            {event.creator.full_name}
-          </p>
-        )}
-        <div className="mt-1 flex gap-2">
+  function renderEventCard(event: EventWithCreator, options?: { compact?: boolean; occurrenceCount?: number }) {
+    const footer = (
+      <div className="mt-1 flex flex-col gap-2">
+        <div className="flex gap-2">
           <Link to={`/manager/events/${event.id}/edit`} className="flex-1">
             <Button variant="outline" icon={<PencilLine className="h-4 w-4" />} className="w-full">
               עריכה
@@ -151,8 +151,58 @@ export function ManagerDashboardPage() {
             מחיקת אירוע
           </Button>
         )}
-      </Card>
+      </div>
     );
+
+    return (
+      <EventCard
+        key={event.id}
+        event={event}
+        approvedCount={counts[event.id]}
+        creatorName={options?.compact ? undefined : event.creator?.full_name}
+        occurrenceCount={options?.occurrenceCount}
+        hideCount={false}
+        footer={footer}
+      />
+    );
+  }
+
+  // Single flat grid, matching HomePage's layout exactly - a series'
+  // representative card plus its expand toggle is one grid item; if
+  // expanded, each sibling occurrence becomes its own additional grid item
+  // right after it, instead of a separate per-series grid (which could
+  // misalign columns from row to row).
+  const gridItems: { key: string; node: React.ReactNode }[] = [];
+  for (const event of events) {
+    const key = seriesKey(event);
+    const seriesEvents = eventsBySeriesKey.get(key) ?? [event];
+    const otherOccurrences = seriesEvents.filter((e) => e.id !== event.id);
+    const expanded = expandedSeries.has(key);
+
+    gridItems.push({
+      key: event.id,
+      node: (
+        <div className="flex flex-col gap-2">
+          {renderEventCard(event, { occurrenceCount: event.occurrenceCount })}
+          {otherOccurrences.length > 0 && (
+            <Button
+              variant="ghost"
+              icon={expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              onClick={() => toggleExpanded(key)}
+              className="self-start !px-2.5 !py-1.5 text-slate-500"
+            >
+              {expanded ? 'הסתרת מופעים נוספים' : `הצגת ${otherOccurrences.length} מופעים נוספים בסדרה`}
+            </Button>
+          )}
+        </div>
+      ),
+    });
+
+    if (expanded) {
+      for (const occurrence of otherOccurrences) {
+        gridItems.push({ key: occurrence.id, node: renderEventCard(occurrence, { compact: true }) });
+      }
+    }
   }
 
   return (
@@ -188,44 +238,10 @@ export function ManagerDashboardPage() {
           }
         />
       ) : (
-        <div className="flex flex-col gap-6">
-          {events.map((event) => {
-            const key = seriesKey(event);
-            const seriesEvents = eventsBySeriesKey.get(key) ?? [event];
-            const otherOccurrences = seriesEvents.filter((e) => e.id !== event.id);
-            const expanded = expandedSeries.has(key);
-
-            return (
-              <div key={event.id} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="flex flex-col gap-2">
-                  {renderEventCard(event)}
-                  {event.recurrence_label && (
-                    <p className="flex items-center gap-1.5 text-sm text-slate-500">
-                      <Repeat className="h-4 w-4 shrink-0" />
-                      {event.recurrence_label}
-                    </p>
-                  )}
-                  {otherOccurrences.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      icon={expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      onClick={() => toggleExpanded(key)}
-                      className="self-start !px-2.5 !py-1.5 text-slate-500"
-                    >
-                      {expanded ? 'הסתרת מופעים נוספים' : `הצגת ${otherOccurrences.length} מופעים נוספים בסדרה`}
-                    </Button>
-                  )}
-                </div>
-
-                {expanded &&
-                  otherOccurrences.map((occurrence) => (
-                    <div key={occurrence.id} className="flex flex-col gap-2">
-                      {renderEventCard(occurrence, { compact: true })}
-                    </div>
-                  ))}
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {gridItems.map((item) => (
+            <div key={item.key}>{item.node}</div>
+          ))}
         </div>
       )}
     </PageContainer>

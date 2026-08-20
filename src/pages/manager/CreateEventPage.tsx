@@ -32,6 +32,8 @@ export function CreateEventPage() {
       minimum_age: values.minimum_age ? Number(values.minimum_age) : null,
       status: values.status,
       registration_mode: values.registration_mode,
+      hide_attendee_count: values.hide_attendee_count,
+      attendee_list_visibility: values.attendee_list_visibility,
       created_by: profile.id,
       manager_ids: [profile.id],
     };
