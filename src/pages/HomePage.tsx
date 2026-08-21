@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CalendarX } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
+import { useAuth } from '../context/AuthProvider';
 import type { EventWithCreator } from '../lib/supabase/types';
 import { groupEventsBySeries } from '../utils/recurrence';
 import { PageContainer } from '../components/layout/PageContainer';
@@ -11,6 +12,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 type EventListItem = EventWithCreator & { occurrenceCount: number };
 
 export function HomePage() {
+  const { profile } = useAuth();
   const [events, setEvents] = useState<EventListItem[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -56,6 +58,14 @@ export function HomePage() {
     };
   }, []);
 
+  // invite_only events are unlisted from general browsing - only their own
+  // managers see them here. Computed at render time (not baked into the
+  // fetch) so it reacts correctly once auth/profile resolves, whichever
+  // finishes loading second.
+  const isManagerOf = (event: EventWithCreator) =>
+    profile?.role === 'super_admin' || event.manager_ids.includes(profile?.id ?? '');
+  const visibleEvents = events.filter((event) => event.registration_mode !== 'invite_only' || isManagerOf(event));
+
   return (
     <PageContainer>
       <div className="mb-8">
@@ -69,7 +79,7 @@ export function HomePage() {
             <EventCardSkeleton key={i} />
           ))}
         </div>
-      ) : events.length === 0 ? (
+      ) : visibleEvents.length === 0 ? (
         <EmptyState
           icon={CalendarX}
           title="אין אירועים כרגע"
@@ -77,7 +87,7 @@ export function HomePage() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {events.map((event) => (
+          {visibleEvents.map((event) => (
             <EventCard
               key={event.id}
               event={event}

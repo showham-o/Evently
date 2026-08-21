@@ -152,6 +152,27 @@ export function EventDetailsPage() {
     );
   }
 
+  // Invite-only visibility applies to the WHOLE page, not just the RSVP
+  // section below - a non-invited, non-manager viewer must not see the
+  // event's title/date/location/description either. Previously only the
+  // RSVP form was gated while the info card rendered unconditionally above
+  // it, so "invite only" only ever restricted registering, not viewing -
+  // confirmed live as a real bug, not just a UI nicety.
+  const inviteOnly = event.registration_mode === 'invite_only' && !isManager;
+  if (inviteOnly && user && inviteeLoading) {
+    // Logged in, but we don't yet know if they're an invitee - wait rather
+    // than flash the "not invited" card before the real answer is in.
+    return <PageSkeleton />;
+  }
+  if (inviteOnly && (!user || !myInvitee)) {
+    return (
+      <PageContainer className="max-w-3xl">
+        <BackButton className="mb-4" />
+        <InviteOnlyCard showLogin={!user} />
+      </PageContainer>
+    );
+  }
+
   const canSeeCount = !event.hide_attendee_count || isManager;
   // Same cancelled-visibility rule applied to sibling occurrences, so a
   // non-manager never sees a link to a cancelled occurrence they can't
@@ -236,26 +257,12 @@ export function EventDetailsPage() {
         </div>
       )}
 
-      {event.registration_mode === 'invite_only' ? (
-        !user ? (
-          <InviteOnlyCard showLogin />
-        ) : !profile || inviteeLoading ? (
-          <PageSkeleton />
-        ) : !myInvitee ? (
-          <InviteOnlyCard showLogin={false} />
-        ) : (
-          <RsvpForm
-            event={event}
-            profile={profile}
-            approvedCount={approvedCount}
-            existingInvitee={myInvitee}
-            onSubmitted={(invitee) => {
-              setMyInvitee(invitee);
-              refetch();
-            }}
-          />
-        )
-      ) : !user ? (
+      {/* invite_only + unauthorized is already blocked by the page-level
+          guard above (whole page, not just this section) - by the time we
+          reach here for an invite_only event, the viewer is either a
+          manager or a known invitee, so it renders exactly like any other
+          logged-in RSVP case below. */}
+      {!user ? (
         event.registration_mode === 'anyone' ? (
           <div className="flex flex-col gap-4">
             <Card className="flex flex-col items-center justify-between gap-3 p-4 sm:flex-row">
