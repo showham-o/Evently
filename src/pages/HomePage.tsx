@@ -59,12 +59,17 @@ export function HomePage() {
   }, []);
 
   // invite_only events are unlisted from general browsing - only their own
-  // managers see them here. Computed at render time (not baked into the
-  // fetch) so it reacts correctly once auth/profile resolves, whichever
-  // finishes loading second.
+  // managers see them here. registered_only events are hidden from
+  // anonymous visitors but visible to any logged-in user. Computed at
+  // render time (not baked into the fetch) so it reacts correctly once
+  // auth/profile resolves, whichever finishes loading second.
   const isManagerOf = (event: EventWithCreator) =>
     profile?.role === 'super_admin' || event.manager_ids.includes(profile?.id ?? '');
-  const visibleEvents = events.filter((event) => event.registration_mode !== 'invite_only' || isManagerOf(event));
+  const visibleEvents = events.filter((event) => {
+    if (event.registration_mode === 'invite_only') return isManagerOf(event);
+    if (event.registration_mode === 'registered_only') return !!profile || isManagerOf(event);
+    return true;
+  });
 
   return (
     <PageContainer>

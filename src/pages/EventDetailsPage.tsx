@@ -173,7 +173,31 @@ export function EventDetailsPage() {
     );
   }
 
-  const canSeeCount = !event.hide_attendee_count || isManager;
+  // registered_only events are visible to any logged-in user (no invitee
+  // check needed, unlike invite_only) - but must still be fully hidden from
+  // anonymous visitors, not just gated at the RSVP form, same bug pattern
+  // as invite_only above.
+  const registeredOnly = event.registration_mode === 'registered_only' && !isManager;
+  if (registeredOnly && !user) {
+    return (
+      <PageContainer className="max-w-3xl">
+        <BackButton className="mb-4" />
+        <LoginPromptCard />
+      </PageContainer>
+    );
+  }
+
+  // The numeric count must respect the same attendee_list_visibility tier as
+  // the name list below it (AttendeeList/event_attendee_summary) - previously
+  // it only checked hide_attendee_count, so restricting the name list to
+  // "managers only" or "logged-in users" still left the count itself visible
+  // to anyone, including anonymous visitors.
+  const canSeeAttendeeList =
+    isManager ||
+    event.attendee_list_visibility === 'public' ||
+    (event.attendee_list_visibility === 'logged_in' && !!user) ||
+    (event.attendee_list_visibility === 'managers_and_invitees' && !!myInvitee);
+  const canSeeCount = isManager || (canSeeAttendeeList && !event.hide_attendee_count);
   // Same cancelled-visibility rule applied to sibling occurrences, so a
   // non-manager never sees a link to a cancelled occurrence they can't
   // actually open.
@@ -257,11 +281,11 @@ export function EventDetailsPage() {
         </div>
       )}
 
-      {/* invite_only + unauthorized is already blocked by the page-level
-          guard above (whole page, not just this section) - by the time we
-          reach here for an invite_only event, the viewer is either a
-          manager or a known invitee, so it renders exactly like any other
-          logged-in RSVP case below. */}
+      {/* invite_only and registered_only + unauthorized are already blocked
+          by the page-level guards above (whole page, not just this
+          section) - by the time we reach here for either mode, the viewer
+          is a manager, a known invitee, or simply logged in, so it renders
+          exactly like any other logged-in RSVP case below. */}
       {!user ? (
         event.registration_mode === 'anyone' ? (
           <div className="flex flex-col gap-4">
