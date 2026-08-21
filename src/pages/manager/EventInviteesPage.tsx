@@ -11,7 +11,6 @@ import { Button } from '../../components/ui/Button';
 import { InviteeTable } from '../../components/manager/InviteeTable';
 import { AddInviteeModal } from '../../components/manager/AddInviteeModal';
 import { BackButton } from '../../components/ui/BackButton';
-import { Seo } from '../../components/seo/Seo';
 
 export function EventInviteesPage() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -44,7 +43,6 @@ export function EventInviteesPage() {
 
   return (
     <PageContainer>
-      <Seo title={`נרשמים: ${event.title} | Evently`} description="ניהול אישורי הגעה ורשימת המתנה." path={`/manager/events/${event.id}/invitees`} noindex />
       <BackButton className="mb-4" />
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>

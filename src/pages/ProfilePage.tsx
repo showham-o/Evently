@@ -13,7 +13,6 @@ import { Button } from '../components/ui/Button';
 import { useValidatedInput } from '../hooks/useValidatedInput';
 import { emailValidator, FULL_NAME_MAX_LENGTH, fullNameValidator } from '../utils/validation';
 import { BackButton } from '../components/ui/BackButton';
-import { Seo } from '../components/seo/Seo';
 
 // Password change on this page is optional (only validated if the user
 // actually starts typing a new one), unlike registration's mandatory version.
@@ -136,7 +135,6 @@ export function ProfilePage() {
 
   return (
     <PageContainer className="max-w-2xl">
-      <Seo title="הפרופיל שלי | Evently" description="ניהול פרטי החשבון שלך." path="/profile" noindex />
       <BackButton className="mb-4" isDirty={profileDirty} />
       <div className="mb-6 flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600">

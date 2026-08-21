@@ -10,78 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <title>Evently - ניהול אירועים ואישורי הגעה</title>
-
-    <!--
-      Technical SEO baseline.
-
-      IMPORTANT: page-varying tags (description, canonical, robots, og:title,
-      og:description, og:url, twitter:title, twitter:description) are
-      deliberately NOT here - they live in <DefaultSeo> (src/App.tsx), a
-      base react-helmet-async <Helmet> rendered once at the app root, with
-      each page's own <Seo> (src/components/seo/Seo.tsx) overriding it where
-      needed. Helmet only knows how to replace tags it rendered itself; it
-      has no way to recognize and remove hand-written static tags sitting in
-      this file, so defining the same tag both here AND via Helmet produces
-      silent duplicates (two <meta name="description">, two robots tags,
-      etc.) instead of one correct one - confirmed by hand while building
-      this out. Only tags that truly never vary per page live here: this is
-      what a non-JS-executing crawler (Facebook/Twitter/LinkedIn - Google's
-      crawler DOES execute JS and sees the Helmet-managed versions) will see
-      regardless of which page was actually shared, so og:image/twitter:card
-      stay generic/site-wide rather than per-page.
-    -->
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Evently" />
-    <meta property="og:locale" content="he_IL" />
-    <!-- Placeholder image (existing favicon) - swap for a real 1200x630 social card when one exists. -->
-    <meta property="og:image" content="%VITE_SITE_URL%/favicon.svg" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:image" content="%VITE_SITE_URL%/favicon.svg" />
-
-    <!-- Organization + WebSite structured data (site-wide, static - unlike
-         Event schema, these don't vary per page so there's no need to
-         duplicate them via the per-page Seo component). -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "Evently",
-        "url": "%VITE_SITE_URL%/",
-        "logo": "%VITE_SITE_URL%/favicon.svg"
-      }
-    </script>
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "Evently",
-        "url": "%VITE_SITE_URL%/",
-        "inLanguage": "he-IL"
-      }
-    </script>
-
+    <title>Evently</title>
     <link rel="stylesheet" href="/accessibility-widget/accessibility-widget.css?v=5" />
-
-    <!-- Google Analytics 4 - only actually loads once VITE_GA_MEASUREMENT_ID
-         is set to a real Measurement ID; the placeholder value is a no-op. -->
-    <script>
-      (function () {
-        var GA_MEASUREMENT_ID = '%VITE_GA_MEASUREMENT_ID%';
-        if (!GA_MEASUREMENT_ID || GA_MEASUREMENT_ID.indexOf('XXXX') !== -1) return;
-        var script = document.createElement('script');
-        script.async = true;
-        script.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_MEASUREMENT_ID;
-        document.head.appendChild(script);
-        window.dataLayer = window.dataLayer || [];
-        function gtag() {
-          window.dataLayer.push(arguments);
-        }
-        window.gtag = gtag;
-        gtag('js', new Date());
-        gtag('config', GA_MEASUREMENT_ID);
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -13,7 +13,6 @@ import { EventCardSkeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { Button } from '../components/ui/Button';
-import { Seo } from '../components/seo/Seo';
 
 type InviteeListItem = MyInviteeRow & { occurrenceCount: number };
 
@@ -195,7 +194,6 @@ export function MyEventsPage() {
 
   return (
     <PageContainer>
-      <Seo title="אירועים שנרשמתי | Evently" description="האירועים הקרובים שנרשמת אליהם." path="/my-events" noindex />
       <div className="mb-8">
         <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
           <Ticket className="h-6 w-6 text-primary-600" />
